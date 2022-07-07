@@ -12,4 +12,5 @@ urlpatterns = [
     path('apis/login/', obtain_auth_token),
     path('', HomePageView.as_view(), name='index'),
     path('register/', RegisterView.as_view(), name='register'),
+    path('saveData/', SavePatientDataView.as_view()),
 ]

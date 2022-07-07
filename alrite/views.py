@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
+from bs4 import BeautifulSoup as bs
 
 
 # Create your views here.
@@ -41,3 +42,36 @@ class RegisterView(LoginRequiredMixin, CreateView):
 
 class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
+
+
+class SavePatientDataView(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    def post(self, request):
+        file = request.FILES.get('patient')
+
+        user = self.request.user
+
+        bs_content = bs(file, 'lxml')
+        list_ = list(bs_content.find('map').children)
+        list_ = list(filter(lambda a: a != '\n', list_))
+
+        myDict = {}
+        for c in list_:
+            myDict[c.get('name')] = c.text
+
+        popKey("diagnosis", myDict)
+        popKey("oxDiagnosis", myDict)
+        popKey("stDiagnosis", myDict)
+        popKey("gnDiagnosis", myDict)
+
+        # Patient.objects.create(**myDict, clinician=user)
+
+        return Response(myDict)
+
+
+def popKey(key, dict):
+    if key in dict:
+        dict.pop("key")
