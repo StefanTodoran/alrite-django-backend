@@ -87,4 +87,4 @@ class SavePatientDataView(APIView):
 
 def popKey(key, dict):
     if key in dict:
-        dict.pop("key")
+        dict.pop(key)
