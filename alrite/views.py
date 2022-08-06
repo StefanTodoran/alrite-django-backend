@@ -79,9 +79,9 @@ class SavePatientDataView(APIView):
         popKey("stDiagnosis", myDict)
         popKey("gnDiagnosis", myDict)
 
-        # Patient.objects.create(**myDict, clinician=user)
+        Patient.objects.create(**myDict, clinician=user)
 
-        return Response(myDict)
+        return Response("Data saved successfully")
 
 
 def popKey(key, dict):
