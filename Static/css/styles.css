@@ -37,10 +37,10 @@ div.inner-div {
     font-size: 14px;
     width: 100%;
     padding: 5px;
-    background: #f5f7fb;
+    background: #fafdf7;
     margin-bottom: 10px;
     border-radius: 10px;
-    border: 2px solid #e5e7ea;
+    border: 2px solid #f5f7fb;
 }
 
 .top-bar {
@@ -113,7 +113,7 @@ main {
 
 .top-cards {
     width: 100%;
-    text-align: center;
+    /*text-align: center;*/
 }
 
 .top-cards ul, .filter ul {
@@ -186,6 +186,34 @@ main {
     width: 8px;
     background:  #d8dbdd;
     border-radius: 0 8px 8px 0;
+}
+
+.table-data {
+    width: 100%;
+    /*height: 100%;*/
+}
+
+.table-data thead {
+    font-weight: bold;
+    font-size: 13px;
+    background: #e5e7ea;
+    height: 20px;
+    border-bottom: #e5e7ea 1px solid;
+}
+
+.table-data tbody {
+    font-size: 12px;
+    height: 20px;
+    border-bottom: #e5e7ea 1px solid;
+}
+
+.table-data tbody td{
+    padding: 10px
+}
+
+.table-data td {
+    width: 40px;
+    text-align: center;
 }
 
 

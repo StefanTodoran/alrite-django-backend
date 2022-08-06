@@ -43,6 +43,18 @@ class RegisterView(LoginRequiredMixin, CreateView):
 class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
+    def get_context_data(self, **kwargs):
+
+        patient = Patient.objects.all()
+
+        context = super(HomePageView, self).get_context_data(**kwargs)
+
+        context.update({
+            "patients": patient,
+        })
+
+        return context
+
 
 class SavePatientDataView(APIView):
     authentication_classes = [authentication.TokenAuthentication]

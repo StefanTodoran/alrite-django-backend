@@ -65,6 +65,7 @@ class Patient(models.Model):
     clinician_diagnosis = models.TextField(blank=True, null=True)
     clinician_treatment = models.TextField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
+    duration = models.CharField(max_length=255, blank=True, null=True)
     diagnosis_1 = models.CharField(max_length=255, blank=True, null=True)
     diagnosis_2 = models.CharField(max_length=255, blank=True, null=True)
     diagnosis_3 = models.CharField(max_length=255, blank=True, null=True)
