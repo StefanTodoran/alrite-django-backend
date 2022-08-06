@@ -63,6 +63,7 @@ class SavePatientDataView(APIView):
     @csrf_exempt
     def post(self, request):
         file = request.FILES.get('patient')
+        print(file)
 
         user = self.request.user
 
