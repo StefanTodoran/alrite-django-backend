@@ -28,11 +28,13 @@ class CustomUser(AbstractUser):
 
 
 class Patient(models.Model):
-    clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
+    clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="form_filler")
+    clinician_2 = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="logged_in_user")
     patient_uuid = models.CharField(max_length=255)
     patient_initials = models.CharField(max_length=255)
     parent_initials = models.CharField(max_length=255)
     start_date = models.DateTimeField(blank=True, null=True)
+    start_date_2 = models.DateTimeField(blank=True, null=True)
     age = models.CharField(max_length=255, blank=True, null=True)
     age2 = models.CharField(max_length=255, blank=True, null=True)
     gender = models.CharField(max_length=255, blank=True, null=True)
@@ -66,6 +68,8 @@ class Patient(models.Model):
     clinician_treatment = models.TextField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
     duration = models.CharField(max_length=255, blank=True, null=True)
+    end_date_2 = models.DateTimeField(blank=True, null=True)
+    duration_2 = models.CharField(max_length=255, blank=True, null=True)
     diagnosis_1 = models.CharField(max_length=255, blank=True, null=True)
     diagnosis_2 = models.CharField(max_length=255, blank=True, null=True)
     diagnosis_3 = models.CharField(max_length=255, blank=True, null=True)

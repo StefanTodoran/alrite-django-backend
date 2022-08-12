@@ -62,6 +62,7 @@ class SavePatientDataView(APIView):
 
     @csrf_exempt
     def post(self, request):
+
         file = request.FILES.get('patient')
         print(file)
 
@@ -75,12 +76,21 @@ class SavePatientDataView(APIView):
         for c in list_:
             myDict[c.get('name')] = c.text
 
+        if "clinician" in myDict:
+            username = myDict["clinician"]
+            username = CustomUser.objects.get(username=username)
+
+        else:
+            username = CustomUser.objects.get(username="chodrine")
+
         popKey("diagnosis", myDict)
         popKey("oxDiagnosis", myDict)
         popKey("stDiagnosis", myDict)
         popKey("gnDiagnosis", myDict)
+        popKey("gnDiagnosis", myDict)
+        popKey("clinician", myDict)
 
-        Patient.objects.create(**myDict, clinician=user)
+        Patient.objects.create(**myDict, clinician_2=user, clinician=username)
 
         return Response("Data saved successfully")
 
