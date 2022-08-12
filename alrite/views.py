@@ -91,6 +91,7 @@ class SavePatientDataView(APIView):
         popKey("clinician", myDict)
         popKey("second", myDict)
         popKey("filename", myDict)
+        popKey("final", myDict)
 
         Patient.objects.create(**myDict, clinician_2=user, clinician=username)
 
