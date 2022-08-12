@@ -26,7 +26,7 @@ from bs4 import BeautifulSoup as bs
 class RegisterView(LoginRequiredMixin, CreateView):
     template_name = 'registration/register.html'
     form_class = CreateUser
-    success_url = reverse_lazy('index')
+    success_url = reverse_lazy('clinicians')
 
     def form_valid(self, form):
         user = form.save(commit=False)
@@ -36,6 +36,7 @@ class RegisterView(LoginRequiredMixin, CreateView):
         username = first + "_" + last
         user.username = username
         user.password = make_password(password)
+        user.is_nurse = True
         user.save()
         return super(RegisterView, self).form_valid(form)
 
@@ -51,6 +52,22 @@ class HomePageView(LoginRequiredMixin, TemplateView):
 
         context.update({
             "patients": patient,
+        })
+
+        return context
+
+
+class CliniciansPageView(LoginRequiredMixin, TemplateView):
+    template_name = 'clinicians.html'
+
+    def get_context_data(self, **kwargs):
+
+        clinicians = CustomUser.objects.filter(is_nurse=True)
+
+        context = super(CliniciansPageView, self).get_context_data(**kwargs)
+
+        context.update({
+            "clinicians": clinicians,
         })
 
         return context

@@ -1,8 +1,13 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load crispy_forms_tags %}
 {% block content %}
     <div class="content">
-        <div class="top-cards">
+
+        {% if user.is_authenticated %}
+            {% if request.user.is_admin %}
+
+                <div class="top-cards">
             <ul>
                 <li>
                     <div class="shadow-sm">
@@ -43,211 +48,220 @@
             </ul>
         </div>
 
-        <div class="filter mt-3">
-            <ul>
-                 <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Healthy Facility</p>
-                         <select name="carx" id="carx" class="input-data">
-                          <option value="all">All</option>
-                          <option value="bugembe">Bugembe HC IV</option>
-                          <option value="buwenge">Buwenge HC IV</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">From</p>
-                        <input type="date" class="day-1 input-data">
-                    </div>
-                </li>
-                 <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">To</p>
-                        <input type="date" class="day-2 input-data">
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Gender</p>
-                         <select name="card" id="card" class="input-data">
-                          <option value="all">All</option>
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Forms</p>
-                       <select name="car" id="car" class="input-data">
-                          <option value="all">All</option>
-                          <option value="complete">Complete</option>
-                          <option value="incomplete">Incomplete</option>
-                        </select>
-                    </div>
-                </li>
-                 <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Pneumonia</p>
-                       <select name="car1" id="car1" class="input-data">
-                          <option value="none">None</option>
-                          <option value="severe">Severe Pneumonia</option>
-                          <option value="pneumonia">Pneumonia</option>
-                          <option value="cold">Cough/ Cold/ No Pneumonia</option>
-                          <option value="signs">No signs of Pneumonia or Wheezing illness</option>
-                        </select>
-                    </div>
-                </li>
-                 <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Acute Malnutrition</p>
-                       <select name="car4" id="car4" class="input-data">
-                          <option value="none">None</option>
-                          <option value="severe">Severe Acute Malnutrition</option>
-                          <option value="moderate">Moderate Acute Malnutrition</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Fever without danger signs</p>
-                       <select name="car6" id="car6" class="input-data">
-                          <option value="none">None</option>
-                          <option value="yes">Yes</option>
-                          <option value="no">No</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Very severe febril illness</p>
-                       <select name="car7" id="car7" class="input-data">
-                          <option value="none">None</option>
-                          <option value="yes">Yes</option>
-                          <option value="no">No</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">HIV status</p>
-                       <select name="car8" id="car8" class="input-data">
-                          <option value="none">None</option>
-                          <option value="infected">Infected</option>
-                          <option value="exposed">Exposed</option>
-                          <option value="unknown">Unknown</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Asthma risk</p>
-                       <select name="car9" id="car9" class="input-data">
-                          <option value="none">None</option>
-                          <option value="yes">Yes</option>
-                          <option value="no">No</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Tuberculosis risk</p>
-                       <select name="car66" id="car66" class="input-data">
-                          <option value="none">None</option>
-                          <option value="yes">Yes</option>
-                          <option value="no">No</option>
-                        </select>
-                    </div>
-                </li>
-                 <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Wheezing illness</p>
-                       <select name="car67" id="car67" class="input-data">
-                          <option value="none">None</option>
-                          <option value="yes">Not clear bronchodilator response</option>
-                          <option value="no">Bronchodilator response</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Bronchodilator trial</p>
-                       <select name="car68" id="car68" class="input-data">
-                          <option value="none">None</option>
-                          <option value="yes">Carried out</option>
-                          <option value="no">Not carried out</option>
-                        </select>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Bronchodilator trial Response</p>
-                       <select name="car682" id="car682" class="input-data">
-                          <option value="none">None</option>
-                          <option value="better">Better</option>
-                          <option value="same">Same/ no change</option>
-                           <option value="worse">Worse</option>
-                        </select>
-                    </div>
-                </li>
-                 <li>
-                    <div>
-                        <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Breathing Rate</p>
-                       <select name="carxx" id="carxx" class="input-data">
-                          <option value="none">None</option>
-                          <option value="normal">Normal Breathing Rate</option>
-                          <option value="fast">Fast Breathing Rate</option>
-                        </select>
-                    </div>
-                </li>
-            </ul>
-        </div>
+                <div class="filter mt-3">
+                    <ul>
+                         <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Healthy Facility</p>
+                                 <select name="carx" id="carx" class="input-data">
+                                  <option value="all">All</option>
+                                  <option value="bugembe">Bugembe HC IV</option>
+                                  <option value="buwenge">Buwenge HC IV</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">From</p>
+                                <input type="date" class="day-1 input-data">
+                            </div>
+                        </li>
+                         <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">To</p>
+                                <input type="date" class="day-2 input-data">
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Gender</p>
+                                 <select name="card" id="card" class="input-data">
+                                  <option value="all">All</option>
+                                  <option value="male">Male</option>
+                                  <option value="female">Female</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Forms</p>
+                               <select name="car" id="car" class="input-data">
+                                  <option value="all">All</option>
+                                  <option value="complete">Complete</option>
+                                  <option value="incomplete">Incomplete</option>
+                                </select>
+                            </div>
+                        </li>
+                         <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Pneumonia</p>
+                               <select name="car1" id="car1" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="severe">Severe Pneumonia</option>
+                                  <option value="pneumonia">Pneumonia</option>
+                                  <option value="cold">Cough/ Cold/ No Pneumonia</option>
+                                  <option value="signs">No signs of Pneumonia or Wheezing illness</option>
+                                </select>
+                            </div>
+                        </li>
+                         <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Acute Malnutrition</p>
+                               <select name="car4" id="car4" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="severe">Severe Acute Malnutrition</option>
+                                  <option value="moderate">Moderate Acute Malnutrition</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Fever without danger signs</p>
+                               <select name="car6" id="car6" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Very severe febril illness</p>
+                               <select name="car7" id="car7" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">HIV status</p>
+                               <select name="car8" id="car8" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="infected">Infected</option>
+                                  <option value="exposed">Exposed</option>
+                                  <option value="unknown">Unknown</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Asthma risk</p>
+                               <select name="car9" id="car9" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Tuberculosis risk</p>
+                               <select name="car66" id="car66" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                </select>
+                            </div>
+                        </li>
+                         <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Wheezing illness</p>
+                               <select name="car67" id="car67" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="yes">Not clear bronchodilator response</option>
+                                  <option value="no">Bronchodilator response</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Bronchodilator trial</p>
+                               <select name="car68" id="car68" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="yes">Carried out</option>
+                                  <option value="no">Not carried out</option>
+                                </select>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Bronchodilator trial Response</p>
+                               <select name="car682" id="car682" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="better">Better</option>
+                                  <option value="same">Same/ no change</option>
+                                   <option value="worse">Worse</option>
+                                </select>
+                            </div>
+                        </li>
+                         <li>
+                            <div>
+                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Breathing Rate</p>
+                               <select name="carxx" id="carxx" class="input-data">
+                                  <option value="none">None</option>
+                                  <option value="normal">Normal Breathing Rate</option>
+                                  <option value="fast">Fast Breathing Rate</option>
+                                </select>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
 
-        <div class="table-div mt-5 my-custom-scrollbar table-wrapper-scroll-y">
-            <table class="table-data">
-                <thead>
-                    <tr>
-                        <td>Age(years)</td>
-                        <td>Weight(kg)</td>
-                        <td>MUAC(cm)</td>
-                        <td>Symptoms</td>
-                        <td>Breathing difficulties</td>
-                        <td>Days with breathing difficulties</td>
-                        <td>Temperature(<span>&#176;</span>C)</td>
-                        <td>Oxygen Saturation(%)</td>
-                        <td>Respiratory Rate</td>
-                        <td>Stridor</td>
-                        <td>nasal Flaring</td>
-                        <td>Wheezing</td>
-                        <td>Stethoscope used</td>
-                        <td>Chest indrawing</td>
-                        <td>Duration(min)</td>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for patient in patients %}
-                        <tr>
-                            <td>{{ patient.age2 }}</td>
-                            <td>{{ patient.weight }}</td>
-                            <td>{{ patient.muac }}</td>
-                            <td>{{ patient.symptoms }}</td>
-                            <td>{{ patient.difficulty_breathing }}</td>
-                            <td>{{ patient.days_with_breathing_difficulties}}</td>
-                            <td>{{ patient.temperature }}</td>
-                            <td>{{ patient.blood_oxygen_saturation }}</td>
-                            <td>{{ patient.respiratory_rate }}</td>
-                            <td>{{ patient.stridor }}</td>
-                            <td>{{ patient.nasal_flaring}}</td>
-                            <td>{{ patient.wheezing }}</td>
-                            <td>{{ patient.stethoscope_used}}</td>
-                            <td>{{ patient.chest_indrawing}}</td>
-                            <td>{{ patient.duration }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                <div class="table-div mt-5 my-custom-scrollbar table-wrapper-scroll-y">
+                    <table class="table-data">
+                        <thead>
+                            <tr>
+                                <td>Age(years)</td>
+                                <td>Weight(kg)</td>
+                                <td>MUAC(cm)</td>
+                                <td>Symptoms</td>
+                                <td>Breathing difficulties</td>
+                                <td>Days with breathing difficulties</td>
+                                <td>Temperature(<span>&#176;</span>C)</td>
+                                <td>Oxygen Saturation(%)</td>
+                                <td>Respiratory Rate</td>
+                                <td>Stridor</td>
+                                <td>nasal Flaring</td>
+                                <td>Wheezing</td>
+                                <td>Stethoscope used</td>
+                                <td>Chest indrawing</td>
+                                <td>Duration(min)</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for patient in patients %}
+                                <tr>
+                                    <td>{{ patient.age2 }}</td>
+                                    <td>{{ patient.weight }}</td>
+                                    <td>{{ patient.muac }}</td>
+                                    <td>{{ patient.symptoms }}</td>
+                                    <td>{{ patient.difficulty_breathing }}</td>
+                                    <td>{{ patient.days_with_breathing_difficulties}}</td>
+                                    <td>{{ patient.temperature }}</td>
+                                    <td>{{ patient.blood_oxygen_saturation }}</td>
+                                    <td>{{ patient.respiratory_rate }}</td>
+                                    <td>{{ patient.stridor }}</td>
+                                    <td>{{ patient.nasal_flaring}}</td>
+                                    <td>{{ patient.wheezing }}</td>
+                                    <td>{{ patient.stethoscope_used}}</td>
+                                    <td>{{ patient.chest_indrawing}}</td>
+                                    <td>{{ patient.duration }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            {% else %}
+                <div class="pags">
+                    <p>You are not authorized to access this page</p>
+                </div>
+
+            {% endif %}
+
+        {% endif %}
 
     </div>
 {% endblock content %}

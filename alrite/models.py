@@ -18,6 +18,9 @@ class Health_Facility(models.Model):
 
 class CustomUser(AbstractUser):
     healthy_facility = models.ForeignKey(Health_Facility, null=True, blank=True, on_delete=models.SET_NULL)
+    forms = models.IntegerField(default=0)
+    completed_forms = models.IntegerField(default=0)
+    incomplete_forms = models.IntegerField(default=0)
     is_admin = models.BooleanField(default=False)
     is_nurse = models.BooleanField(default=False)
     is_doctor = models.BooleanField(default=False)

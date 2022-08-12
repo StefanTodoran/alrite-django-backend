@@ -19,6 +19,4 @@ class CreateUser(forms.ModelForm):
             'last_name',
             'password',
             'healthy_facility',
-            'is_nurse',
-            'is_doctor',
         ]

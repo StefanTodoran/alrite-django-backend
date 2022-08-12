@@ -1,11 +1,40 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load crispy_forms_tags %}
 {% block content %}
-    <form method="post">
-        {% csrf_token %}
-        {{ form|crispy }}
-        <div class="submit">
-            <button type="submit" class="btn btn-success btn-sm">Create Branch Manager</button>
+
+     {% if user.is_authenticated %}
+        {% if request.user.is_admin %}
+
+            <div class="register">
+        <div class="register-div">
+            <div class="text-center">
+               <h4 class="create">Create Clinician</h4>
+            </div>
+            <div class="register-form shadow">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="text-right">
+                         <button type="submit" class="btn btn-sm mt-3 w-25" style="background-color: #285843; color: white">Create Clinician</button>
+{#                         <button class="btn mt-2 btn-sm ms-2 w-25" style="background-color: #5D4954;"><a href="{% url 'signup' %}" class="text-decoration-none text-light">Sign Up</a></button>#}
+                    </div>
+                </form>
+            </div>
         </div>
-    </form>
+    </div>
+
+        {% else %}
+            <div class="content">
+                <div class="pags">
+                    <p>You are not authorized to access this page</p>
+                </div>
+            </div>
+
+
+        {% endif %}
+
+    {% endif %}
+
+
 {% endblock content %}
