@@ -48,10 +48,27 @@ class HomePageView(LoginRequiredMixin, TemplateView):
 
         patient = Patient.objects.all()
 
+        clinicians = CustomUser.objects.filter(is_nurse=True).count()
+        forms = patient.count()
+        complete = Patient.objects.filter(incomplete__isnull=True).count()
+        print(complete)
+        incomplete = Patient.objects.filter(incomplete__isnull=False).count()
+        severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
+        brochodilator = Patient.objects.filter(bronchodilator="Bronchodialtor Given")
+        eligible = brochodilator.count()
+        reassessed = brochodilator.filter(after_bronchodilator__isnull=False).count()
+
         context = super(HomePageView, self).get_context_data(**kwargs)
 
         context.update({
             "patients": patient,
+            "clinicians": clinicians,
+            "forms": forms,
+            "complete": complete,
+            "incomplete": incomplete,
+            "severe": severe,
+            "eligible": eligible,
+            "reassessed": reassessed,
         })
 
         return context
