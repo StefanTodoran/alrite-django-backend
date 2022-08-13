@@ -20,6 +20,7 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
 from bs4 import BeautifulSoup as bs
+from django.db.models import F
 
 
 # Create your views here.
@@ -51,7 +52,6 @@ class HomePageView(LoginRequiredMixin, TemplateView):
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = patient.count()
         complete = Patient.objects.filter(incomplete__isnull=True).count()
-        print(complete)
         incomplete = Patient.objects.filter(incomplete__isnull=False).count()
         severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
         brochodilator = Patient.objects.filter(bronchodilator="Bronchodialtor Given")
@@ -113,6 +113,12 @@ class SavePatientDataView(APIView):
         if "clinician" in myDict:
             username = myDict["clinician"]
             username = CustomUser.objects.get(username=username)
+            if "incomplete" in myDict:
+                CustomUser.objects.filter(username=username)\
+                    .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
+            else:
+                CustomUser.objects.filter(username=username) \
+                    .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
 
         else:
             username = CustomUser.objects.get(username="chodrine")
