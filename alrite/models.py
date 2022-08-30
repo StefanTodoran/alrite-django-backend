@@ -44,6 +44,9 @@ class Counter(models.Model):
     app_opening_count = models.CharField(max_length=255, blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.clinician.username
+
 
 class Patient(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="form_filler")
