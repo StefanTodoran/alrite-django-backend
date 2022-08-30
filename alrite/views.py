@@ -142,3 +142,27 @@ class SavePatientDataView(APIView):
 def popKey(key, dict):
     if key in dict:
         dict.pop(key)
+
+
+class SaveCountDataView(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    def post(self, request):
+
+        file = request.FILES.get('counter')
+
+        user = self.request.user
+
+        bs_content = bs(file, 'lxml')
+        list_ = list(bs_content.find('map').children)
+        list_ = list(filter(lambda a: a != '\n', list_))
+
+        myDict = {}
+        for c in list_:
+            myDict[c.get('name')] = c.text
+
+        Counter.objects.create(**myDict, clinician=user)
+
+        return Response("Data saved successfully")

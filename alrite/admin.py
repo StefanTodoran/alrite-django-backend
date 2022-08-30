@@ -4,6 +4,6 @@ from import_export.admin import ImportExportModelAdmin
 
 
 # Register your models here.
-@admin.register(Patient, CustomUser, Health_Facility)
+@admin.register(Patient, CustomUser, Health_Facility, Counter)
 class ViewAdmin(ImportExportModelAdmin):
     pass

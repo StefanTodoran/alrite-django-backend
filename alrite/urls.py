@@ -13,4 +13,5 @@ urlpatterns = [
     path('registration/', RegisterView.as_view(), name='register'),
     path('clinicians/', CliniciansPageView.as_view(), name='clinicians'),
     path('apis/saveData/', SavePatientDataView.as_view()),
+    path('apis/saveCounter/', SaveCountDataView.as_view()),
 ]

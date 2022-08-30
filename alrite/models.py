@@ -30,6 +30,21 @@ class CustomUser(AbstractUser):
         return self.username
 
 
+class Counter(models.Model):
+    clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
+    chest_indrawing_count = models.CharField(max_length=255, blank=True, null=True)
+    grant_count = models.CharField(max_length=255, blank=True, null=True)
+    bronchodilator_count = models.CharField(max_length=255, blank=True, null=True)
+    wheezing_count = models.CharField(max_length=255, blank=True, null=True)
+    stridor_count = models.CharField(max_length=255, blank=True, null=True)
+    nasal_count = models.CharField(max_length=255, blank=True, null=True)
+    eczema_count = models.CharField(max_length=255, blank=True, null=True)
+    rr_counter_count = models.CharField(max_length=255, blank=True, null=True)
+    learn_opening_count = models.CharField(max_length=255, blank=True, null=True)
+    app_opening_count = models.CharField(max_length=255, blank=True, null=True)
+    date = models.DateTimeField(auto_now_add=True)
+
+
 class Patient(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="form_filler")
     clinician_2 = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="logged_in_user")
