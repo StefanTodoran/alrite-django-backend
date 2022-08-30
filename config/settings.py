@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+import django_heroku
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -129,20 +131,18 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-STATIC_URL = '/static/'
-
 STATICFILES_DIRS = [
     BASE_DIR / "static"
 ]
 
-STATIC_ROOT = "staticfiles"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # MEDIA_URL = '/media/'
 # MEDIA_ROOT = os.path.join(BASE_DIR, 'audio')
 
 LOGIN_REDIRECT_URL = 'index'
-LOGOUT_REDIRECT_URL = '/login'
-LOGIN_URL = '/login'
+LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = '/login/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -150,3 +150,5 @@ LOGIN_URL = '/login'
 AUTH_USER_MODEL = 'alrite.CustomUser'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+django_heroku.settings(locals())

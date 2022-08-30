@@ -10,7 +10,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 urlpatterns = [
     # path('register/', registration_view),
     path('apis/login/', obtain_auth_token),
-    path('', HomePageView.as_view(), name='index'),
-    path('register/', RegisterView.as_view(), name='register'),
-    path('saveData/', SavePatientDataView.as_view()),
+    path('registration/', RegisterView.as_view(), name='register'),
+    path('clinicians/', CliniciansPageView.as_view(), name='clinicians'),
+    path('apis/saveData/', SavePatientDataView.as_view()),
 ]

@@ -20,13 +20,14 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
 from bs4 import BeautifulSoup as bs
+from django.db.models import F
 
 
 # Create your views here.
 class RegisterView(LoginRequiredMixin, CreateView):
     template_name = 'registration/register.html'
     form_class = CreateUser
-    success_url = reverse_lazy('index')
+    success_url = reverse_lazy('clinicians')
 
     def form_valid(self, form):
         user = form.save(commit=False)
@@ -36,6 +37,7 @@ class RegisterView(LoginRequiredMixin, CreateView):
         username = first + "_" + last
         user.username = username
         user.password = make_password(password)
+        user.is_nurse = True
         user.save()
         return super(RegisterView, self).form_valid(form)
 
@@ -47,10 +49,42 @@ class HomePageView(LoginRequiredMixin, TemplateView):
 
         patient = Patient.objects.all()
 
+        clinicians = CustomUser.objects.filter(is_nurse=True).count()
+        forms = patient.count()
+        complete = Patient.objects.filter(incomplete__isnull=True).count()
+        incomplete = Patient.objects.filter(incomplete__isnull=False).count()
+        severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
+        brochodilator = Patient.objects.filter(bronchodilator="Bronchodialtor Given")
+        eligible = brochodilator.count()
+        reassessed = brochodilator.filter(after_bronchodilator__isnull=False).count()
+
         context = super(HomePageView, self).get_context_data(**kwargs)
 
         context.update({
             "patients": patient,
+            "clinicians": clinicians,
+            "forms": forms,
+            "complete": complete,
+            "incomplete": incomplete,
+            "severe": severe,
+            "eligible": eligible,
+            "reassessed": reassessed,
+        })
+
+        return context
+
+
+class CliniciansPageView(LoginRequiredMixin, TemplateView):
+    template_name = 'clinicians.html'
+
+    def get_context_data(self, **kwargs):
+
+        clinicians = CustomUser.objects.filter(is_nurse=True)
+
+        context = super(CliniciansPageView, self).get_context_data(**kwargs)
+
+        context.update({
+            "clinicians": clinicians,
         })
 
         return context
@@ -62,7 +96,9 @@ class SavePatientDataView(APIView):
 
     @csrf_exempt
     def post(self, request):
+
         file = request.FILES.get('patient')
+        print(file)
 
         user = self.request.user
 
@@ -74,16 +110,35 @@ class SavePatientDataView(APIView):
         for c in list_:
             myDict[c.get('name')] = c.text
 
+        if "clinician" in myDict:
+            username = myDict["clinician"]
+            username = CustomUser.objects.get(username=username)
+            if "incomplete" in myDict:
+                CustomUser.objects.filter(username=username)\
+                    .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
+            else:
+                CustomUser.objects.filter(username=username) \
+                    .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
+
+        else:
+            username = CustomUser.objects.get(username="chodrine")
+
         popKey("diagnosis", myDict)
         popKey("oxDiagnosis", myDict)
         popKey("stDiagnosis", myDict)
         popKey("gnDiagnosis", myDict)
+        popKey("gnDiagnosis", myDict)
+        popKey("clinician", myDict)
+        popKey("second", myDict)
+        popKey("filename", myDict)
+        popKey("final", myDict)
+        popKey("reassess", myDict)
 
-        # Patient.objects.create(**myDict, clinician=user)
+        Patient.objects.create(**myDict, clinician_2=user, clinician=username)
 
-        return Response(myDict)
+        return Response("Data saved successfully")
 
 
 def popKey(key, dict):
     if key in dict:
-        dict.pop("key")
+        dict.pop(key)
