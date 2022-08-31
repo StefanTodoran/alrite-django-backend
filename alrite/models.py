@@ -52,6 +52,7 @@ class Patient(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="form_filler")
     clinician_2 = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL, related_name="logged_in_user")
     patient_uuid = models.CharField(max_length=255)
+    study_id = models.CharField(max_length=255, blank=True, null=True)
     patient_initials = models.CharField(max_length=255)
     parent_initials = models.CharField(max_length=255)
     start_date = models.DateTimeField(blank=True, null=True)
