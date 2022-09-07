@@ -152,6 +152,7 @@ class SaveCountDataView(APIView):
     def post(self, request):
 
         file = request.FILES.get('counter')
+        # new changes
 
         user = self.request.user
 
