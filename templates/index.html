@@ -213,6 +213,7 @@
                     <table class="table-data">
                         <thead>
                             <tr>
+                                <td>Study Id</td>
                                 <td>Age(years)</td>
                                 <td>Weight(kg)</td>
                                 <td>MUAC(cm)</td>
@@ -233,6 +234,7 @@
                         <tbody>
                             {% for patient in patients %}
                                 <tr>
+                                    <td>{{ patient.study_id }}</td>
                                     <td>{{ patient.age2 }}</td>
                                     <td>{{ patient.weight }}</td>
                                     <td>{{ patient.muac }}</td>
