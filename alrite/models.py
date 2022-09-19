@@ -11,6 +11,7 @@ from django.contrib.auth.models import AbstractUser
 # new changes
 class Health_Facility(models.Model):
     name = models.CharField(max_length=255)
+    code = models.CharField(max_length=255, blank=True, null=True)
     location = models.CharField(max_length=255)
 
     def __str__(self):
@@ -20,6 +21,7 @@ class Health_Facility(models.Model):
 class CustomUser(AbstractUser):
     healthy_facility = models.ForeignKey(Health_Facility, null=True, blank=True, on_delete=models.SET_NULL)
     forms = models.IntegerField(default=0)
+    code = models.CharField(max_length=255, blank=True, null=True)
     completed_forms = models.IntegerField(default=0)
     incomplete_forms = models.IntegerField(default=0)
     is_admin = models.BooleanField(default=False)

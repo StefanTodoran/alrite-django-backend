@@ -13,6 +13,7 @@ from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIV
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import authentication, permissions, status
+from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -30,16 +31,43 @@ class RegisterView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('clinicians')
 
     def form_valid(self, form):
-        user = form.save(commit=False)
+        # user = form.save(commit=False)
         first = form.cleaned_data['first_name']
         last = form.cleaned_data['last_name']
+        healthy = form.cleaned_data['healthy_facility']
         password = form.cleaned_data['password']
         username = first + "_" + last
+
+        clinician_code = CustomUser.objects.filter(healthy_facility=healthy).latest('date_joined').code
+        new_code = int(clinician_code)
+        new_code = new_code + 1
+        code = "0" + str(new_code)
+
+        user = form.save(commit=False)
         user.username = username
         user.password = make_password(password)
         user.is_nurse = True
+        user.code = code
+
         user.save()
+
         return super(RegisterView, self).form_valid(form)
+
+
+@api_view(['POST'])
+def login_api(request):
+    serializer = AuthTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.validated_data['user']
+    token = Token.objects.get(user=user).key
+
+    return Response({
+        'user_info': {
+            'code': user.code,
+            'healthy_facility': user.healthy_facility.code
+        },
+        'token': token
+    })
 
 
 class HomePageView(LoginRequiredMixin, TemplateView):
@@ -167,3 +195,6 @@ class SaveCountDataView(APIView):
         Counter.objects.create(**myDict, clinician=user)
 
         return Response("Data saved successfully")
+
+
+
