@@ -35,16 +35,16 @@ class CustomUser(AbstractUser):
 
 class Counter(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
-    chest_indrawing_count = models.CharField(max_length=255, blank=True, null=True)
-    grant_count = models.CharField(max_length=255, blank=True, null=True)
-    bronchodilator_count = models.CharField(max_length=255, blank=True, null=True)
-    wheezing_count = models.CharField(max_length=255, blank=True, null=True)
-    stridor_count = models.CharField(max_length=255, blank=True, null=True)
-    nasal_count = models.CharField(max_length=255, blank=True, null=True)
-    eczema_count = models.CharField(max_length=255, blank=True, null=True)
-    rr_counter_count = models.CharField(max_length=255, blank=True, null=True)
-    learn_opening_count = models.CharField(max_length=255, blank=True, null=True)
-    app_opening_count = models.CharField(max_length=255, blank=True, null=True)
+    chest_indrawing_count = models.IntegerField(default=0)
+    grant_count = models.IntegerField(default=0)
+    bronchodilator_count = models.IntegerField(default=0)
+    wheezing_count = models.IntegerField(default=0)
+    stridor_count = models.IntegerField(default=0)
+    nasal_count = models.IntegerField(default=0)
+    eczema_count = models.IntegerField(default=0)
+    rr_counter_count = models.IntegerField(default=0)
+    learn_opening_count = models.IntegerField(default=0)
+    app_opening_count = models.IntegerField(default=0)
     date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
