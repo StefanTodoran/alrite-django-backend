@@ -272,5 +272,52 @@ main {
     text-align: center;
 }
 
+.app_usage {
+    margin: 10px 40px;
+    width: 100%;
+}
+
+.app_usage ul {
+    list-style: none;
+}
+
+.app_usage ul li {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.app_usage_div {
+    background: white;
+    border-radius: 20px;
+    padding: 10px;
+    height: 100px;
+    width: 300px;
+}
+
+.app_usage_div_1{
+    float: left;
+    height: 100%;
+}
+
+.app_usage_div_2{
+    float: right;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.figure {
+    font-weight: bold;
+    font-size: 25px;
+}
+
+.msg {
+    font-size: 13px;
+    margin-top: 10px;
+    color: #929a92;
+}
+
+
+
 
 

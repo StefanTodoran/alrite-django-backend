@@ -22,6 +22,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from bs4 import BeautifulSoup as bs
 from django.db.models import F
+from django.db.models import Sum
 
 
 # Create your views here.
@@ -79,12 +80,18 @@ class HomePageView(LoginRequiredMixin, TemplateView):
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = patient.count()
-        complete = Patient.objects.filter(incomplete__isnull=True).count()
-        incomplete = Patient.objects.filter(incomplete__isnull=False).count()
+        complete = Patient.objects.filter(incomplete="incomplete").count()
+        incomplete = Patient.objects.filter(incomplete="complete").count()
         severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
         brochodilator = Patient.objects.filter(bronchodilator="Bronchodialtor Given")
         eligible = brochodilator.count()
         reassessed = brochodilator.filter(after_bronchodilator__isnull=False).count()
+
+        # counter details
+        app_opening = (Counter.objects.aggregate(Sum('app_opening_count')))['app_opening_count__sum']
+        rr_counter = (Counter.objects.aggregate(Sum('rr_counter_count')))['rr_counter_count__sum']
+        learn = (Counter.objects.aggregate(Sum('learn_opening_count')))['learn_opening_count__sum']
+        active_users = Patient.objects.values('clinician').distinct().count()
 
         context = super(HomePageView, self).get_context_data(**kwargs)
 
@@ -97,6 +104,10 @@ class HomePageView(LoginRequiredMixin, TemplateView):
             "severe": severe,
             "eligible": eligible,
             "reassessed": reassessed,
+            "app_opening": app_opening,
+            "rr_counter": rr_counter,
+            "learn": learn,
+            "active_users": active_users,
         })
 
         return context
@@ -116,6 +127,10 @@ class CliniciansPageView(LoginRequiredMixin, TemplateView):
         })
 
         return context
+
+
+class AppUsageView(LoginRequiredMixin, TemplateView):
+    template_name = "app_usage.html"
 
 
 class SavePatientDataView(APIView):
@@ -141,7 +156,9 @@ class SavePatientDataView(APIView):
         if "clinician" in myDict:
             username = myDict["clinician"]
             username = CustomUser.objects.get(username=username)
-            if "incomplete" in myDict:
+            # if "incomplete" in myDict:
+            incomplete = myDict["incomplete"]
+            if incomplete == "incomplete":
                 CustomUser.objects.filter(username=username)\
                     .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
             else:
@@ -160,7 +177,9 @@ class SavePatientDataView(APIView):
         popKey("second", myDict)
         popKey("filename", myDict)
         popKey("final", myDict)
+        popKey("study_id_2", myDict)
         popKey("reassess", myDict)
+        popKey("pending", myDict)
 
         Patient.objects.create(**myDict, clinician_2=user, clinician=username)
 

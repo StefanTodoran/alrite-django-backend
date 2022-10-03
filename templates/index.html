@@ -7,46 +7,98 @@
         {% if user.is_authenticated %}
             {% if request.user.is_admin %}
 
+                <div class="app_usage">
+                    <p>Mobile App Usage</p>
+
+                    <ul class="p-0 m-0">
+                        <li>
+                            <div class="app_usage_div shadow-sm">
+                                <div class="app_usage_div_1">
+                                    <p class="figure m-0">{{ active_users }}</p>
+                                    <p class="msg">Active Users</p>
+                                </div>
+                                <div class="app_usage_div_2">
+                                    <img src="{% static 'images/active.png' %}" alt="" height="50" width="50">
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="app_usage_div shadow-sm">
+                                <div class="app_usage_div_1">
+                                    <p class="figure m-0">{{ app_opening }}</p>
+                                    <p class="msg">App Loaded</p>
+                                </div>
+                                <div class="app_usage_div_2">
+                                    <img src="{% static 'images/app.png' %}" alt="" height="50" width="50">
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="app_usage_div shadow-sm">
+                                <div class="app_usage_div_1">
+                                    <p class="figure m-0">{{ learn }}</p>
+                                    <p class="msg">Learn Loaded</p>
+                                </div>
+                                <div class="app_usage_div_2">
+                                    <img src="{% static 'images/learn.png' %}" alt="" height="50" width="50">
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="app_usage_div shadow-sm">
+                                <div class="app_usage_div_1">
+                                    <p class="figure m-0">{{ rr_counter }}</p>
+                                    <p class="msg">RR Counter Used</p>
+                                </div>
+                                <div class="app_usage_div_2">
+                                    <img src="{% static 'images/counter.png' %}" alt="" height="50" width="50">
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
                 <div class="top-cards">
-            <ul>
-                <li>
-                    <div class="shadow-sm">
-                        <p class="heading m-0">Clinicians</p>
-                        <p class="details m-0">{{ clinicians }}</p>
-                    </div>
-                </li>
-                 <li>
-                    <div class="shadow-sm">
-                        <p class="heading m-0">Forms</p>
-                        <p class="details m-0">{{ forms }}</p>
-                    </div>
-                 </li>
-                 <li>
-                    <div class="shadow-sm">
-                        <p class="heading m-0">Complete forms</p>
-                        <p class="details m-0">{{ complete }}</p>
-                    </div>
-                 </li>
-                 <li>
-                    <div class="shadow-sm">
-                        <p class="heading m-0">Severe Pneumonia or very severe disease</p>
-                        <p class="details m-0">{{ severe }}</p>
-                    </div>
-                 </li>
-                 <li>
-                    <div class="shadow-sm">
-                        <p class="heading m-0">Eligible for Reassessment</p>
-                        <p class="details m-0">{{ eligible }}</p>
-                    </div>
-                 </li>
-                 <li>
-                    <div class="shadow-sm">
-                        <p class="heading m-0">Reassessed</p>
-                        <p class="details m-0">{{ reassessed }}</p>
-                    </div>
-                 </li>
-            </ul>
-        </div>
+                <p style="margin-left: 40px; margin-right: 40px; margin-top: 20px">Patient Data</p>
+                    <ul>
+                        <li>
+                            <div class="shadow-sm">
+                                <p class="heading m-0">Clinicians</p>
+                                <p class="details m-0">{{ clinicians }}</p>
+                            </div>
+                        </li>
+                         <li>
+                            <div class="shadow-sm">
+                                <p class="heading m-0">Forms</p>
+                                <p class="details m-0">{{ forms }}</p>
+                            </div>
+                         </li>
+                         <li>
+                            <div class="shadow-sm">
+                                <p class="heading m-0">Complete forms</p>
+                                <p class="details m-0">{{ complete }}</p>
+                            </div>
+                         </li>
+                         <li>
+                            <div class="shadow-sm">
+                                <p class="heading m-0">Severe Pneumonia or very severe disease</p>
+                                <p class="details m-0">{{ severe }}</p>
+                            </div>
+                         </li>
+                         <li>
+                            <div class="shadow-sm">
+                                <p class="heading m-0">Eligible for Reassessment</p>
+                                <p class="details m-0">{{ eligible }}</p>
+                            </div>
+                         </li>
+                         <li>
+                            <div class="shadow-sm">
+                                <p class="heading m-0">Reassessed</p>
+                                <p class="details m-0">{{ reassessed }}</p>
+                            </div>
+                         </li>
+                    </ul>
+                </div>
 
                 <div class="filter mt-3">
                     <ul>
