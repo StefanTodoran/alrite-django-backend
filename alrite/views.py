@@ -77,12 +77,12 @@ class HomePageView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
 
         patient = Patient.objects.all()
-        Patient.objects.update(incomplete='complete')
+        # Patient.objects.update(incomplete='complete')
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = patient.count()
-        complete = Patient.objects.filter(incomplete="incomplete").count()
-        incomplete = Patient.objects.filter(incomplete="complete").count()
+        complete = Patient.objects.filter(incomplete="complete").count()
+        incomplete = Patient.objects.filter(incomplete="incomplete").count()
         severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
         brochodilator = Patient.objects.filter(bronchodilator="Bronchodialtor Given")
         eligible = brochodilator.count()
