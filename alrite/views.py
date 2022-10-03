@@ -77,6 +77,7 @@ class HomePageView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
 
         patient = Patient.objects.all()
+        Patient.objects.update(incomplete='complete')
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = patient.count()
