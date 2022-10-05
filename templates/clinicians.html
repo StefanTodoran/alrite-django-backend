@@ -16,8 +16,7 @@
                             <table class="table-data">
                                 <thead>
                                     <tr>
-                                        <td>Name</td>
-                                        <td>Username</td>
+                                        <td>Clinician</td>
                                         <td>Health Facility</td>
                                         <td>Forms submitted</td>
                                         <td>Complete Forms</td>
@@ -27,8 +26,7 @@
                                 <tbody>
                                     {% for cli in clinicians %}
                                         <tr>
-                                            <td>{{ cli.first_name }} {{ cli.last_name }}</td>
-                                            <td>{{ cli.username }}</td>
+                                            <td>AL{{ cli.healthy_facility.code }}{{ cli.code }}</td>
                                             <td>{{ cli.healthy_facility.name }}</td>
                                             <td>{{ cli.forms }}</td>
                                             <td>{{ cli.completed_forms }}</td>
