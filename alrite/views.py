@@ -79,10 +79,24 @@ def login_api(request):
     })
 
 
+# def checking():
+#     code = "AL0101AL0101AL0101AL010123"
+#     if "_" in code:
+#         print('fbubvf')
+#     else:
+#         first = code[0:5]
+#         last = code[-2:]
+#         sty = first + last
+#         print(sty)
+
+
 class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
+
+
+        checking()
 
         patient = Patient.objects.all()
 
@@ -181,6 +195,14 @@ class SavePatientDataView(APIView):
             username = CustomUser.objects.get(username="chodrine")
             incomplete = ""
 
+        study_id = myDict['study_id']
+        if "_" in study_id:
+            study = study_id
+        else:
+            first = study_id[0:5]
+            last = study_id[-2:]
+            study = first + last
+
         popKey("diagnosis", myDict)
         popKey("oxDiagnosis", myDict)
         popKey("stDiagnosis", myDict)
@@ -194,8 +216,9 @@ class SavePatientDataView(APIView):
         popKey("reassess", myDict)
         popKey("pending", myDict)
         popKey("incomplete", myDict)
+        popKey("study_id", myDict)
 
-        Patient.objects.create(**myDict, clinician_2=user, clinician=username, incomplete=incomplete)
+        Patient.objects.create(**myDict, clinician_2=user, clinician=username, incomplete=incomplete, study_id=study)
 
         return Response("Data saved successfully")
 
