@@ -39,10 +39,15 @@ class RegisterView(LoginRequiredMixin, CreateView):
         password = form.cleaned_data['password']
         username = first + "_" + last
 
-        clinician_code = CustomUser.objects.filter(healthy_facility=healthy).latest('date_joined').code
-        new_code = int(clinician_code)
-        new_code = new_code + 1
-        code = "0" + str(new_code)
+        clinician_code = CustomUser.objects.filter(healthy_facility=healthy)
+
+        if clinician_code.exists():
+            clinician_code = clinician_code.latest('date_joined').code
+            new_code = int(clinician_code)
+            new_code = new_code + 1
+            code = "0" + str(new_code)
+        else:
+            code = "01"
 
         user = form.save(commit=False)
         user.username = username
@@ -158,15 +163,17 @@ class SavePatientDataView(APIView):
             username = myDict["clinician"]
             username = CustomUser.objects.get(username=username)
             if "incomplete" in myDict:
-            # incomplete = myDict["incomplete"]
-            # if incomplete == "incomplete":
-                CustomUser.objects.filter(username=username)\
-                    .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
-                incomplete = "incomplete"
+                incomplete = myDict['incomplete']
+                if incomplete == "incomplete":
+                    CustomUser.objects.filter(username=username)\
+                        .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
+                    incomplete = "incomplete"
+                else:
+                    CustomUser.objects.filter(username=username) \
+                        .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
+                    incomplete = "complete"
             else:
-                CustomUser.objects.filter(username=username) \
-                    .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
-                incomplete = "complete"
+                incomplete = ""
 
         else:
             username = CustomUser.objects.get(username="chodrine")
