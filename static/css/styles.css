@@ -137,7 +137,6 @@ main {
 
 .content {
     padding: 20px;
-    height: 100%;
 }
 
 .cli-head {
@@ -315,6 +314,19 @@ main {
     font-size: 13px;
     margin-top: 10px;
     color: #929a92;
+}
+
+.data-download {
+    background: #8CD78F;
+    color: white;
+    border-radius: 10px;
+    padding: 10px;
+    text-decoration: none;
+}
+
+.data-download:hover {
+    text-decoration: none;
+    color: #285843;
 }
 
 

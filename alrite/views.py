@@ -1,3 +1,6 @@
+import csv
+import datetime
+
 from django.shortcuts import render
 from .serializers import *
 from .models import *
@@ -82,7 +85,6 @@ class HomePageView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
 
         patient = Patient.objects.all()
-        # Patient.objects.update(incomplete='complete')
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = patient.count()
@@ -226,6 +228,47 @@ class SaveCountDataView(APIView):
         Counter.objects.create(**myDict, clinician=user)
 
         return Response("Data saved successfully")
+
+
+def export_csv(request):
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename=Alrite_Dataset_' + str(datetime.datetime.now()) + '.csv'
+
+    writer = csv.writer(response)
+    writer.writerow(['date', 'patient_study_id', 'age(months)', 'gender', 'weight', 'muac', 'symptoms',
+                     'difficulty_breathing', 'days_with_breathing_difficulties', 'hiv_status', 'child_in_hiv_care',
+                     'temperature', 'febrile_to_touch', 'blood_oxygen_saturation', 'respiratory_rate', 'breathing_rate',
+                     'respiratory_rate_score', 'stridor', 'nasal_flaring', 'wheezing', 'stethoscope_used',
+                     'chest_indrawing', 'bronchodilator', 'bronchodilator_not_given_reason', 'duration', 'diagnosis_1',
+                     'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6', 'diagnosis_7',
+                     'diagnosis_8', 'diagnosis_9', 'diagnosis_10',
+                     'diagnosis_11', 'respiratory_rate_2', 'breathing_rate_2', 'respiratory_rate_score_2',
+                     'wheezing_2', 'chest_indrawing_2', 'wheezing_before_this_illness', 'child_breathless',
+                     'breathing_difficulties_last_year', 'child_ever_had_eczema', 'child_parents_with_allergies',
+                     'smoke_tobacco', 'use_kerosene', 'clinician_diagnosis', 'clinician_treatment' 'incomplete'])
+
+    patients = Patient.objects.all()
+
+    for patient in patients:
+        writer.writerow([patient.end_date, patient.study_id, patient.age, patient.gender,
+                         patient.weight, patient.muac, patient.symptoms, patient.difficulty_breathing, patient.days_with_breathing_difficulties,
+                         patient.hiv_status, patient.child_in_hiv_care, patient.temperature, patient.febrile_to_touch,
+                         patient.blood_oxygen_saturation, patient.respiratory_rate, patient.breathing_rate, patient.respiratory_rate_score,
+                         patient.stridor, patient.nasal_flaring, patient.wheezing, patient.stethoscope_used, patient.chest_indrawing,
+                         patient.bronchodilator, patient.bronchodilator_not_given_reason, patient.duration, patient.diagnosis_1,
+                         patient.diagnosis_2, patient.diagnosis_3, patient.diagnosis_4, patient.diagnosis_5, patient.diagnosis_6,
+                         patient.diagnosis_7, patient.diagnosis_8, patient.diagnosis_9, patient.diagnosis_10, patient.diagnosis_11,
+                         patient.respiratory_rate_2, patient.breathing_rate_2, patient.respiratory_rate_score_2,
+                         patient.wheezing_2, patient.chest_indrawing_2, patient.wheezing_before_this_illness,
+                         patient.child_breathless, patient.breathing_difficulties_last_year, patient.child_ever_had_eczema,
+                         patient.child_parents_with_allergies, patient.smoke_tobacco, patient.use_kerosene, patient.clinician_diagnosis,
+                         patient.clinician_treatment, patient.incomplete])
+
+    return response
+
+
+
 
 
 

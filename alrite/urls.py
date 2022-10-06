@@ -17,4 +17,5 @@ urlpatterns = [
     path('app_usage/', AppUsageView.as_view(), name='app_usage'),
     path('apis/saveData/', SavePatientDataView.as_view()),
     path('apis/saveCounter/', SaveCountDataView.as_view()),
+    path('download_data/', export_csv, name="download")
 ]
