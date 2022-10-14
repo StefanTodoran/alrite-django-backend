@@ -70,10 +70,24 @@ def login_api(request):
     user = serializer.validated_data['user']
     token = Token.objects.get(user=user).key
 
+    study_id = Patient.objects.filter(clinician=user).values('study_id')
+    study_id = list(study_id)
+
+    if len(study_id) == 0:
+        st = 1
+    else:
+        li = []
+        for i in study_id:
+            if i['study_id'].startswith('AL'):
+                last = i['study_id'][-2:]
+                li.append(last)
+        st = int(max(li)) + 1
+
     return Response({
         'user_info': {
             'code': user.code,
-            'healthy_facility': user.healthy_facility.code
+            'healthy_facility': user.healthy_facility.code,
+            'study_id': st
         },
         'token': token
     })
@@ -94,9 +108,6 @@ class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
-
-
-        checking()
 
         patient = Patient.objects.all()
 
@@ -178,30 +189,18 @@ class SavePatientDataView(APIView):
         if "clinician" in myDict:
             username = myDict["clinician"]
             username = CustomUser.objects.get(username=username)
-            if "incomplete" in myDict:
-                incomplete = myDict['incomplete']
-                if incomplete == "incomplete":
-                    CustomUser.objects.filter(username=username)\
-                        .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
-                    incomplete = "incomplete"
-                else:
-                    CustomUser.objects.filter(username=username) \
-                        .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
-                    incomplete = "complete"
+            # if "incomplete" in myDict:
+            incomplete = myDict['incomplete']
+            if incomplete == "incomplete":
+                CustomUser.objects.filter(username=username)\
+                    .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
             else:
-                incomplete = ""
+                CustomUser.objects.filter(username=username) \
+                    .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
 
         else:
             username = CustomUser.objects.get(username="chodrine")
-            incomplete = ""
 
-        study_id = myDict['study_id']
-        if "_" in study_id:
-            study = study_id
-        else:
-            first = study_id[0:5]
-            last = study_id[-2:]
-            study = first + last
 
         popKey("diagnosis", myDict)
         popKey("oxDiagnosis", myDict)
@@ -215,10 +214,8 @@ class SavePatientDataView(APIView):
         popKey("study_id_2", myDict)
         popKey("reassess", myDict)
         popKey("pending", myDict)
-        popKey("incomplete", myDict)
-        popKey("study_id", myDict)
 
-        Patient.objects.create(**myDict, clinician_2=user, clinician=username, incomplete=incomplete, study_id=study)
+        Patient.objects.create(**myDict, clinician_2=user, clinician=username)
 
         return Response("Data saved successfully")
 
