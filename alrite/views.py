@@ -189,17 +189,20 @@ class SavePatientDataView(APIView):
         if "clinician" in myDict:
             username = myDict["clinician"]
             username = CustomUser.objects.get(username=username)
-            # if "incomplete" in myDict:
-            incomplete = myDict['incomplete']
-            if incomplete == "incomplete":
+            if "incomplete" in myDict:
+            # incomplete = myDict['incomplete']
+            # if incomplete == "incomplete":
                 CustomUser.objects.filter(username=username)\
                     .update(forms=F("forms") + 1, incomplete_forms=F("incomplete_forms") + 1)
+                incomplete = 'incomplete'
             else:
                 CustomUser.objects.filter(username=username) \
                     .update(forms=F("forms") + 1, completed_forms=F("completed_forms") + 1)
+                incomplete = 'complete'
 
         else:
             username = CustomUser.objects.get(username="chodrine")
+            incomplete = 'complete'
 
 
         popKey("diagnosis", myDict)
@@ -214,8 +217,9 @@ class SavePatientDataView(APIView):
         popKey("study_id_2", myDict)
         popKey("reassess", myDict)
         popKey("pending", myDict)
+        popKey("incomplete", myDict)
 
-        Patient.objects.create(**myDict, clinician_2=user, clinician=username)
+        Patient.objects.create(**myDict, clinician_2=user, clinician=username, incomplete=incomplete)
 
         return Response("Data saved successfully")
 
