@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% block content %}
     <div class="content">
+    {{ patients | json_script:"data"  }}
 
         {% if user.is_authenticated %}
             {% if request.user.is_admin %}
@@ -101,11 +102,12 @@
                 </div>
 
                 <div class="filter mt-3">
+                    {% csrf_token %}
                     <ul>
                          <li>
                             <div>
                                 <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Healthy Facility</p>
-                                 <select name="carx" id="carx" class="input-data">
+                                 <select name="carx" id="carx" class="input-data hc">
                                   <option value="all">All</option>
                                   <option value="bugembe">Bugembe HC IV</option>
                                   <option value="buwenge">Buwenge HC IV</option>
@@ -268,7 +270,6 @@
                     <table class="table-data">
                         <thead>
                             <tr>
-                                <td>Study Id</td>
                                 <td>Age(years)</td>
                                 <td>Weight(kg)</td>
                                 <td>MUAC(cm)</td>
@@ -281,32 +282,29 @@
                                 <td>Stridor</td>
                                 <td>nasal Flaring</td>
                                 <td>Wheezing</td>
-                                <td>Stethoscope used</td>
                                 <td>Chest indrawing</td>
                                 <td>Duration(min)</td>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for patient in patients %}
-                                <tr>
-                                    <td>{{ patient.study_id }}</td>
-                                    <td>{{ patient.age2 }}</td>
-                                    <td>{{ patient.weight }}</td>
-                                    <td>{{ patient.muac }}</td>
-                                    <td>{{ patient.symptoms }}</td>
-                                    <td>{{ patient.difficulty_breathing }}</td>
-                                    <td>{{ patient.days_with_breathing_difficulties}}</td>
-                                    <td>{{ patient.temperature }}</td>
-                                    <td>{{ patient.blood_oxygen_saturation }}</td>
-                                    <td>{{ patient.respiratory_rate }}</td>
-                                    <td>{{ patient.stridor }}</td>
-                                    <td>{{ patient.nasal_flaring}}</td>
-                                    <td>{{ patient.wheezing }}</td>
-                                    <td>{{ patient.stethoscope_used}}</td>
-                                    <td>{{ patient.chest_indrawing}}</td>
-                                    <td>{{ patient.duration }}</td>
-                                </tr>
-                            {% endfor %}
+                        <tbody class="patient">
+{#                            {% for patient in patients %}#}
+{#                                <tr>#}
+{#                                    <td>{{ patient.age2 }}</td>#}
+{#                                    <td>{{ patient.weight }}</td>#}
+{#                                    <td>{{ patient.muac }}</td>#}
+{#                                    <td>{{ patient.symptoms }}</td>#}
+{#                                    <td>{{ patient.difficulty_breathing }}</td>#}
+{#                                    <td>{{ patient.days_with_breathing_difficulties}}</td>#}
+{#                                    <td>{{ patient.temperature }}</td>#}
+{#                                    <td>{{ patient.blood_oxygen_saturation }}</td>#}
+{#                                    <td>{{ patient.respiratory_rate }}</td>#}
+{#                                    <td>{{ patient.stridor }}</td>#}
+{#                                    <td>{{ patient.nasal_flaring}}</td>#}
+{#                                    <td>{{ patient.wheezing }}</td>#}
+{#                                    <td>{{ patient.chest_indrawing}}</td>#}
+{#                                    <td>{{ patient.duration }}</td>#}
+{#                                </tr>#}
+{#                            {% endfor %}#}
                         </tbody>
                     </table>
                 </div>

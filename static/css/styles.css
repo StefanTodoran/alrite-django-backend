@@ -135,7 +135,7 @@ main {
     cursor: pointer;
 }
 
-.content {
+.content, .content-2 {
     padding: 20px;
 }
 
@@ -249,6 +249,11 @@ main {
     background: #e5e7ea;
     height: 20px;
     border-bottom: #e5e7ea 1px solid;
+}
+
+.new-table td {
+    background:white;
+    border: #e5e7ea 1px solid;
 }
 
 .table-data tbody {

@@ -1,5 +1,6 @@
 import csv
 import datetime
+from datetime import timedelta, datetime
 
 from django.shortcuts import render
 from .serializers import *
@@ -24,7 +25,7 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
 from bs4 import BeautifulSoup as bs
-from django.db.models import F
+from django.db.models import F, Count
 from django.db.models import Sum
 
 
@@ -93,26 +94,16 @@ def login_api(request):
     })
 
 
-# def checking():
-#     code = "AL0101AL0101AL0101AL010123"
-#     if "_" in code:
-#         print('fbubvf')
-#     else:
-#         first = code[0:5]
-#         last = code[-2:]
-#         sty = first + last
-#         print(sty)
-
-
 class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
 
-        patient = Patient.objects.all()
+        # patient = Patient.objects.all()
+        patient = get_data()
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
-        forms = patient.count()
+        forms = Patient.objects.all().count()
         complete = Patient.objects.filter(incomplete="complete").count()
         incomplete = Patient.objects.filter(incomplete="incomplete").count()
         severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
@@ -145,6 +136,31 @@ class HomePageView(LoginRequiredMixin, TemplateView):
 
         return context
 
+    def post(self, request):
+        if request.method == 'POST':
+            data = request.POST.get('data')
+            val = request.POST.get('healthy')
+
+            my_context = {
+                "data": "patients",
+            }
+
+            return HttpResponse(json.dumps(my_context, indent=4, sort_keys=True, default=str),
+                                content_type='application/json')
+
+
+def get_data():
+    patients = Patient.objects.all().values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing', 'days_with_breathing_difficulties',
+                                            'temperature', 'blood_oxygen_saturation', 'respiratory_rate', 'stridor',
+                                            'nasal_flaring', 'wheezing', 'chest_indrawing', 'duration')
+    patients = list(patients)
+    for i in patients:
+        for k, v in i.items():
+            if v is None:
+                i[k] = "none"
+
+    return patients
+
 
 class CliniciansPageView(LoginRequiredMixin, TemplateView):
     template_name = 'clinicians.html'
@@ -152,6 +168,8 @@ class CliniciansPageView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
 
         clinicians = CustomUser.objects.filter(is_nurse=True)
+
+        # clinicinas = get_weekly_data()
 
         context = super(CliniciansPageView, self).get_context_data(**kwargs)
 
@@ -253,10 +271,10 @@ class SaveCountDataView(APIView):
 def export_csv(request):
 
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=Alrite_Dataset_' + str(datetime.datetime.now()) + '.csv'
+    response['Content-Disposition'] = 'attachment; filename=Alrite_Dataset_' + str(datetime.now()) + '.csv'
 
     writer = csv.writer(response)
-    writer.writerow(['date', 'patient_study_id', 'age(months)', 'gender', 'weight', 'muac', 'symptoms',
+    writer.writerow(['app_version', 'date', 'patient_study_id', 'age(months)', 'gender', 'weight', 'muac', 'symptoms',
                      'difficulty_breathing', 'days_with_breathing_difficulties', 'hiv_status', 'child_in_hiv_care',
                      'temperature', 'febrile_to_touch', 'blood_oxygen_saturation', 'respiratory_rate', 'breathing_rate',
                      'respiratory_rate_score', 'stridor', 'nasal_flaring', 'wheezing', 'stethoscope_used',
@@ -271,7 +289,7 @@ def export_csv(request):
     patients = Patient.objects.all()
 
     for patient in patients:
-        writer.writerow([patient.end_date, patient.study_id, patient.age, patient.gender,
+        writer.writerow([patient.app_version, patient.end_date, patient.study_id, patient.age, patient.gender,
                          patient.weight, patient.muac, patient.symptoms, patient.difficulty_breathing, patient.days_with_breathing_difficulties,
                          patient.hiv_status, patient.child_in_hiv_care, patient.temperature, patient.febrile_to_touch,
                          patient.blood_oxygen_saturation, patient.respiratory_rate, patient.breathing_rate, patient.respiratory_rate_score,
@@ -288,6 +306,32 @@ def export_csv(request):
     return response
 
 
+def get_weekly_data():
+    # week_start = datetime.now()
+    week_start = Patient.objects.latest('start_date').start_date
+    week_start -= timedelta(days=week_start.weekday())
+    week_end = week_start + timedelta(days=7)
+
+    patients = Patient.objects.filter(start_date__gte=week_start, start_date__lt=week_end)\
+        .values_list('clinician__username').annotate(count=Count('clinician'))
+    patients = list(patients)
+    patients = convertListToDict2(patients)
+    print(patients)
+
+    all_patients = Patient.objects.all().values_list('clinician__username').annotate(count=Count('clinician'))
+    all_patients = list(all_patients)
+    all_patients = convertListToDict2(all_patients)
+    print(all_patients)
+
+    return [patients, all_patients]
+
+
+def convertListToDict2(li):
+    tur = tuple(li)
+    dic = dict((x, y) for x, y in tur)
+
+    # dic = dict(sorted(dic.items(), key=lambda x: x[1], reverse=True))
+    return dic
 
 
 
