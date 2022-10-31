@@ -20,6 +20,7 @@
                             </div>
                         </li>
                         <li>
+                            {% csrf_token %}
                             <div>
                                 <p class="m-0 p-0" style="color: #929a92; font-size: 14px">To</p>
                                 <input type="date" class="day-2 input-data">
@@ -150,16 +151,16 @@
                                 </select>
                             </div>
                         </li>
-                        <li>
-                            <div>
-                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Diagnosis comparison with HW</p>
-                               <select name="car" id="car" class="input-data">
-                                   <option value=none">None</option>
-                                  <option value="complete">Agreement</option>
-                                  <option value="incomplete">Disagreement</option>
-                                </select>
-                            </div>
-                        </li>
+{#                        <li>#}
+{#                            <div>#}
+{#                                <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Diagnosis comparison with HW</p>#}
+{#                               <select name="car" id="car" class="input-data">#}
+{#                                   <option value=none">None</option>#}
+{#                                  <option value="complete">Agreement</option>#}
+{#                                  <option value="incomplete">Disagreement</option>#}
+{#                                </select>#}
+{#                            </div>#}
+{#                        </li>#}
                          <li>
                             <div>
                                 <p class="m-0 p-0" style="color: #929a92; font-size: 14px">Pneumonia</p>
@@ -272,6 +273,9 @@
                                   <option value="Fast Breathing">Fast Breathing Rate</option>
                                 </select>
                             </div>
+                        </li>
+                        <li>
+                            <a href="#" class="data-reset">Reset</a>
                         </li>
                         <li>
                             <a href="{% url 'download' %}" class="data-download">Download Data</a>

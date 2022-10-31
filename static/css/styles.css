@@ -329,6 +329,18 @@ main {
     text-decoration: none;
 }
 
+.data-reset {
+    background: #e5e7ea;
+    color: black;
+    border-radius: 10px;
+    padding: 10px;
+    text-decoration: none;
+}
+
+.data-reset:hover {
+    color: #333131;
+}
+
 .data-download:hover, .data-filter:hover  {
     text-decoration: none;
     color: #285843;

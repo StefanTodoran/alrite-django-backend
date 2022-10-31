@@ -122,6 +122,13 @@ class HomePageView(LoginRequiredMixin, TemplateView):
                     "data": my_list,
                 }
 
+            elif request.POST.get('action') == "date-reset":
+                my_list = patients_data("none", "none")
+
+                my_context = {
+                    "data": my_list,
+                }
+
             else:
                 health = request.POST.get('health')
                 data = request.FILES.get('data')

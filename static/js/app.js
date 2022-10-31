@@ -57,6 +57,36 @@ $(document).ready(function() {
         sortData('.hiv', 'hiv_status', patients)
         sortData('.breathing', 'breathing_rate', patients)
 
+        $('.data-reset').click(function (){
+             $.ajaxSetup({
+                headers: {
+                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            });
+
+            let formData = new FormData()
+            formData.append("action", "date-reset")
+
+            $.ajax({
+                method: 'POST',
+                url: "/",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(resp){
+                    let info = resp.data
+                    $(".patient tr").remove()
+                    patients = info['patients']
+                    fillTable(patients)
+                    fillPhoneData(info)
+                },
+                error: function (error){
+                    console.log(error)
+                }
+
+            });
+        })
+
     }
 })
 
