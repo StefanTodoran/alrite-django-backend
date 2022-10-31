@@ -69,7 +69,7 @@ def login_api(request):
     serializer = AuthTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
-    token = Token.objects.get(user=user).key
+    token = Token.objects.create(user=user).key
 
     study_id = Patient.objects.filter(clinician=user).values('study_id')
     study_id = list(study_id)
@@ -100,13 +100,88 @@ class HomePageView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
 
         # patient = Patient.objects.all()
-        patient = get_data()
+        my_list = patients_data("none", "none")
+
+        context = super(HomePageView, self).get_context_data(**kwargs)
+
+        context.update({
+            "data": my_list
+        })
+
+        return context
+
+    def post(self, request):
+        if request.method == 'POST':
+            if request.POST.get('action') == "date-filter":
+                day1 = request.POST.get('day1')
+                day2 = request.POST.get('day2')
+
+                my_list = patients_data(day1, day2)
+
+                my_context = {
+                    "data": my_list,
+                }
+
+            else:
+                health = request.POST.get('health')
+                data = request.FILES.get('data')
+                name = request.POST.get('name')
+
+                json_data = json.load(data)
+
+                my_list = sort_function(health, json_data, name)
+
+                my_context = {
+                    "data": my_list,
+                }
+
+            return HttpResponse(json.dumps(my_context, indent=4, sort_keys=True, default=str),
+                                content_type='application/json')
+
+
+def sort_function(value, data, key):
+    print(data)
+    key_val_list = [value]
+    expected_result = [d for d in data if d[key] in key_val_list]
+    print(expected_result)
+    return expected_result
+
+
+def get_data(date1, date2):
+    if date1 == "none" and date2 == "none":
+        patients = Patient.objects.all()\
+            .values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing', 'days_with_breathing_difficulties',
+                    'temperature', 'blood_oxygen_saturation', 'respiratory_rate', 'stridor', 'nasal_flaring',
+                    'wheezing', 'chest_indrawing', 'duration', 'clinician__healthy_facility__name', 'gender',
+                    'diagnosis_1', 'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6',
+                    'diagnosis_7', 'diagnosis_8', 'diagnosis_9', 'diagnosis_10', 'diagnosis_11', 'hiv_status',
+                    'breathing_rate')
+    else:
+        patients = Patient.objects.filter(end_date__gte=date1, end_date__lte=date2)\
+            .values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing',
+                    'days_with_breathing_difficulties', 'temperature', 'blood_oxygen_saturation',
+                    'respiratory_rate', 'stridor', 'nasal_flaring', 'wheezing', 'chest_indrawing', 'duration',
+                    'clinician__healthy_facility__name', 'gender', 'diagnosis_1', 'diagnosis_2', 'diagnosis_3',
+                    'diagnosis_4', 'diagnosis_5', 'diagnosis_6', 'diagnosis_7', 'diagnosis_8', 'diagnosis_9',
+                    'diagnosis_10', 'diagnosis_11', 'hiv_status', 'breathing_rate')
+
+    patients = list(patients)
+    for i in patients:
+        for k, v in i.items():
+            if v is None:
+                i[k] = "none"
+
+    return patients
+
+
+def patients_data(date1, date2):
+    if date1 == "none" and date2 == "none":
+        patients = get_data(date1, date2)
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = Patient.objects.all().count()
         complete = Patient.objects.filter(incomplete="complete").count()
-        incomplete = Patient.objects.filter(incomplete="incomplete").count()
-        severe = Patient.objects.filter(diagnosis_1__isnull=False).count()
+        severe = Patient.objects.filter(diagnosis_1="Severe Pneumonia OR very Severe Disease").count()
         brochodilator = Patient.objects.filter(bronchodilator="Bronchodialtor Given")
         eligible = brochodilator.count()
         reassessed = brochodilator.filter(after_bronchodilator__isnull=False).count()
@@ -117,49 +192,51 @@ class HomePageView(LoginRequiredMixin, TemplateView):
         learn = (Counter.objects.aggregate(Sum('learn_opening_count')))['learn_opening_count__sum']
         active_users = Patient.objects.values('clinician').distinct().count()
 
-        context = super(HomePageView, self).get_context_data(**kwargs)
+    else:
+        patients = get_data(date1, date2)
+        pat = Patient.objects.filter(end_date__gte=date1, end_date__lte=date2)
+        clinicians = CustomUser.objects.filter(is_nurse=True).count()
+        forms = pat.count()
+        complete = pat.filter(incomplete="complete").count()
+        severe = pat.filter(diagnosis_1="Severe Pneumonia OR very Severe Disease").count()
+        brochodilator = pat.filter(bronchodilator="Bronchodialtor Given")
+        eligible = brochodilator.count()
+        reassessed = brochodilator.filter(after_bronchodilator__isnull=False).count()
 
-        context.update({
-            "patients": patient,
-            "clinicians": clinicians,
-            "forms": forms,
-            "complete": complete,
-            "incomplete": incomplete,
-            "severe": severe,
-            "eligible": eligible,
-            "reassessed": reassessed,
-            "app_opening": app_opening,
-            "rr_counter": rr_counter,
-            "learn": learn,
-            "active_users": active_users,
-        })
+        # counter details
+        counter = Counter.objects.filter(date__gte=date1, date__lte=date2)
+        app_opening = (counter.aggregate(Sum('app_opening_count')))['app_opening_count__sum']
+        app_opening = value_none(app_opening)
+        rr_counter = (counter.aggregate(Sum('rr_counter_count')))['rr_counter_count__sum']
+        rr_counter = value_none(rr_counter)
+        learn = (counter.aggregate(Sum('learn_opening_count')))['learn_opening_count__sum']
+        learn = value_none(learn)
+        active_users = pat.values('clinician').distinct().count()
 
-        return context
+    my_list = {
+        "patients": patients,
+        "clinicians": clinicians,
+        "forms": forms,
+        "complete": complete,
+        "severe": severe,
+        "eligible": eligible,
+        "reassessed": reassessed,
+        "app_opening": app_opening,
+        "rr_counter": rr_counter,
+        "learn": learn,
+        "active_users": active_users,
+    }
 
-    def post(self, request):
-        if request.method == 'POST':
-            data = request.POST.get('data')
-            val = request.POST.get('healthy')
-
-            my_context = {
-                "data": "patients",
-            }
-
-            return HttpResponse(json.dumps(my_context, indent=4, sort_keys=True, default=str),
-                                content_type='application/json')
+    return my_list
 
 
-def get_data():
-    patients = Patient.objects.all().values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing', 'days_with_breathing_difficulties',
-                                            'temperature', 'blood_oxygen_saturation', 'respiratory_rate', 'stridor',
-                                            'nasal_flaring', 'wheezing', 'chest_indrawing', 'duration')
-    patients = list(patients)
-    for i in patients:
-        for k, v in i.items():
-            if v is None:
-                i[k] = "none"
+def value_none(value):
+    if value is None:
+        value = 0
+    else:
+        value = value
 
-    return patients
+    return value
 
 
 class CliniciansPageView(LoginRequiredMixin, TemplateView):

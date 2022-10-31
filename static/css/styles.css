@@ -321,7 +321,7 @@ main {
     color: #929a92;
 }
 
-.data-download {
+.data-download, .data-filter {
     background: #8CD78F;
     color: white;
     border-radius: 10px;
@@ -329,11 +329,30 @@ main {
     text-decoration: none;
 }
 
-.data-download:hover {
+.data-download:hover, .data-filter:hover  {
     text-decoration: none;
     color: #285843;
 }
 
+
+.sorter {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.sorter ul {
+    list-style: none;
+    width: 100%;
+    text-align: right;
+}
+
+.sorter ul li {
+    display: inline-block;
+}
+
+.sorter ul li div {
+    margin-right: 20px;
+}
 
 
 
