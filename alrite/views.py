@@ -69,7 +69,7 @@ def login_api(request):
     serializer = AuthTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
-    token = Token.objects.create(user=user).key
+    token = Token.objects.get(user=user).key
 
     study_id = Patient.objects.filter(clinician=user).values('study_id')
     study_id = list(study_id)
