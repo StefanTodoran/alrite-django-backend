@@ -87,12 +87,70 @@ $(document).ready(function() {
             });
         })
 
+        function sortData(classId, column, datas){
+            $(classId).change(function() {
+                    $.ajaxSetup({
+                        headers: {
+                            "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        }
+                    });
+
+                    let val = $(this).val()
+                    if (val === "severe"){
+                        val = "Severe Pneumonia OR very Severe Disease"
+                        column = "diagnosis_1"
+                    }
+                    else if (val === "pneumonia"){
+                        val = "Pneumonia"
+                        column = "diagnosis_7"
+                    }
+                    else if (val === "no signs"){
+                        val = "No signs of Pneumonia or Wheezing illness"
+                        column = "diagnosis_3"
+                    }
+                    else if (val === "cold"){
+                        val = "Cough/Cold/No Pneumonia"
+                        column = "diagnosis_7"
+                    }
+
+                    let patients = ""
+
+                    let data_BlobX = new Blob( [JSON.stringify(datas)], {type: 'text/json;charset=utf-8'})
+
+                    let formData = new FormData();
+                    formData.append('health', val)
+                    formData.append('data', data_BlobX)
+                    formData.append('name', column)
+                    formData.append('action', 'health')
+
+                    $.ajax({
+                        method: 'POST',
+                        url: "/",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(resp){
+                            $(".patient tr").remove()
+                            patients = resp.data
+                            fillTable(patients)
+                        },
+                        error: function (error){
+                            console.log(error)
+                        }
+
+                    });
+
+
+                })
+        }
+
     }
 })
 
 function fillTable(data){
      $.each(data, function(index, value){
          $(".patient").append("<tr><td>" + value['age2'] + "</td>" +
+                                    "<td>"+ value['gender'] +"</td>" +
                                      "<td>"+ value['weight'] +"</td>" +
                                      "<td>"+ value['muac'] +"</td>" +
                                      "<td>"+ value['symptoms'] +"</td>" +
@@ -124,55 +182,3 @@ function fillPhoneData(data){
     $('.reassessed').text(data["reassessed"])
 }
 
-function sortData(classId, column, patients){
-    $(classId).change(function() {
-            $.ajaxSetup({
-                headers: {
-                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
-                }
-            });
-
-            let val = $(this).val()
-            if (val === "severe"){
-                val = "Severe Pneumonia OR very Severe Disease"
-                column = "diagnosis_1"
-            }
-            else if (val === "pneumonia"){
-                val = "Pneumonia"
-                column = "diagnosis_7"
-            }
-            else if (val === "no signs"){
-                val = "No signs of Pneumonia or Wheezing illness"
-                column = "diagnosis_3"
-            }
-            else if (val === "cold"){
-                val = "Cough/Cold/No Pneumonia"
-                column = "diagnosis_7"
-            }
-
-            let data_BlobX = new Blob( [JSON.stringify(patients)], {type: 'text/json;charset=utf-8'})
-
-            let formData = new FormData();
-            formData.append('health', val)
-            formData.append('data', data_BlobX)
-            formData.append('name', column)
-            formData.append('action', 'health')
-
-            $.ajax({
-                method: 'POST',
-                url: "/",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(resp){
-                    $(".patient tr").remove()
-                    patients = resp.data
-                    fillTable(patients)
-                },
-                error: function (error){
-                    console.log(error)
-                }
-
-            });
-        })
-}
