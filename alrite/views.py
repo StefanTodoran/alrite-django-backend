@@ -100,7 +100,7 @@ class HomePageView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
 
         # patient = Patient.objects.all()
-        my_list = patients_data("none", "none")
+        my_list = patients_data("none", "none", 20)
 
         context = super(HomePageView, self).get_context_data(**kwargs)
 
@@ -116,14 +116,14 @@ class HomePageView(LoginRequiredMixin, TemplateView):
                 day1 = request.POST.get('day1')
                 day2 = request.POST.get('day2')
 
-                my_list = patients_data(day1, day2)
+                my_list = patients_data(day1, day2, 1)
 
                 my_context = {
                     "data": my_list,
                 }
 
             elif request.POST.get('action') == "date-reset":
-                my_list = patients_data("none", "none")
+                my_list = patients_data("none", "none", 20)
 
                 my_context = {
                     "data": my_list,
@@ -154,15 +154,23 @@ def sort_function(value, data, key):
     return expected_result
 
 
-def get_data(date1, date2):
+def get_data(date1, date2, value):
     if date1 == "none" and date2 == "none":
-        patients = Patient.objects.all() \
-            .values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing', 'days_with_breathing_difficulties',
-                    'temperature', 'blood_oxygen_saturation', 'respiratory_rate', 'stridor', 'nasal_flaring',
-                    'wheezing', 'chest_indrawing', 'duration', 'clinician__healthy_facility__name', 'gender',
-                    'diagnosis_1', 'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6',
-                    'diagnosis_7', 'diagnosis_8', 'diagnosis_9', 'diagnosis_10', 'diagnosis_11', 'hiv_status',
-                    'breathing_rate')
+        if value == 20:
+            patients = Patient.objects.order_by('-end_date')[:value].values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing', 'days_with_breathing_difficulties',
+                        'temperature', 'blood_oxygen_saturation', 'respiratory_rate', 'stridor', 'nasal_flaring',
+                        'wheezing', 'chest_indrawing', 'duration', 'clinician__healthy_facility__name', 'gender',
+                        'diagnosis_1', 'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6',
+                        'diagnosis_7', 'diagnosis_8', 'diagnosis_9', 'diagnosis_10', 'diagnosis_11', 'hiv_status',
+                        'breathing_rate')
+        else:
+            patients = Patient.objects.all() \
+                .values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing', 'days_with_breathing_difficulties',
+                        'temperature', 'blood_oxygen_saturation', 'respiratory_rate', 'stridor', 'nasal_flaring',
+                        'wheezing', 'chest_indrawing', 'duration', 'clinician__healthy_facility__name', 'gender',
+                        'diagnosis_1', 'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6',
+                        'diagnosis_7', 'diagnosis_8', 'diagnosis_9', 'diagnosis_10', 'diagnosis_11', 'hiv_status',
+                        'breathing_rate')
     else:
         patients = Patient.objects.filter(end_date__gte=date1, end_date__lte=date2) \
             .values('age2', 'weight', 'muac', 'symptoms', 'difficulty_breathing',
@@ -181,9 +189,9 @@ def get_data(date1, date2):
     return patients
 
 
-def patients_data(date1, date2):
+def patients_data(date1, date2, value):
     if date1 == "none" and date2 == "none":
-        patients = get_data(date1, date2)
+        patients = get_data(date1, date2, value)
 
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = Patient.objects.all().count()
@@ -200,7 +208,7 @@ def patients_data(date1, date2):
         active_users = Patient.objects.values('clinician').distinct().count()
 
     else:
-        patients = get_data(date1, date2)
+        patients = get_data(date1, date2, value)
         pat = Patient.objects.filter(end_date__gte=date1, end_date__lte=date2)
         clinicians = CustomUser.objects.filter(is_nurse=True).count()
         forms = pat.count()

@@ -1,6 +1,6 @@
 $(document).ready(function() {
     if ($('div').is('.content')){
-        let patients = ""
+
         let data = JSON.parse(document.getElementById('data').textContent)
         patients = data['patients']
 
@@ -39,6 +39,7 @@ $(document).ready(function() {
                         patients = info['patients']
                         fillTable(patients)
                         fillPhoneData(info)
+                        sessionStorage.setItem('Array', JSON.stringify(patients))
                     },
                     error: function (error){
                         console.log(error)
@@ -113,9 +114,15 @@ $(document).ready(function() {
                         column = "diagnosis_7"
                     }
 
-                    let patients = ""
-
-                    let data_BlobX = new Blob( [JSON.stringify(datas)], {type: 'text/json;charset=utf-8'})
+                    let data_BlobX = null
+                    let sessionString = sessionStorage.getItem('Array')
+                    let arr = JSON.parse(sessionString)
+                    console.log(arr)
+                    if (arr == null){
+                        data_BlobX = new Blob( [JSON.stringify(datas)], {type: 'text/json;charset=utf-8'})
+                    }else {
+                        data_BlobX = new Blob( [JSON.stringify(arr)], {type: 'text/json;charset=utf-8'})
+                    }
 
                     let formData = new FormData();
                     formData.append('health', val)
@@ -131,8 +138,9 @@ $(document).ready(function() {
                         contentType: false,
                         success: function(resp){
                             $(".patient tr").remove()
-                            patients = resp.data
-                            fillTable(patients)
+                            let data = resp.data
+                            fillTable(data)
+                            sessionStorage.setItem('Array', JSON.stringify(data))
                         },
                         error: function (error){
                             console.log(error)
