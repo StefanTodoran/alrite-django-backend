@@ -16,16 +16,6 @@ class Migration(migrations.Migration):
             field=models.IntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='customuser',
-            name='code',
-            field=models.CharField(blank=True, max_length=255, null=True),
-        ),
-        migrations.AddField(
-            model_name='health_facility',
-            name='code',
-            field=models.CharField(blank=True, max_length=255, null=True),
-        ),
-        migrations.AddField(
             model_name='patient',
             name='app_version',
             field=models.IntegerField(default=1),
