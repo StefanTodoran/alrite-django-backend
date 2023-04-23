@@ -9,6 +9,8 @@ from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 # new changes
+
+
 class Health_Facility(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=255, blank=True, null=True)
@@ -32,6 +34,21 @@ class CustomUser(AbstractUser):
         # return f'{self.first_name} {self.last_name}'
         return self.username
 
+"""
+Model that stores a workflow in JSON format, as well
+as attributes about the workflow
+Workflows are meant to be readonly and rarely modified, the purpose
+of the version field is to allow for modifications to
+be made without losing the previous workflow
+class Workflow(models.Model):
+    workflow_id = models.CharField(max_length=63)
+    display_name = models.CharField(max_length=255)
+    version = models.IntegerField(default=1)
+    time_created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
+    json = models.TextField() # Using TextField instead of JSONField because we don't need to parse/query the
+                              # JSON on the server, also its not well supported on databases
+"""
 
 class Counter(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)

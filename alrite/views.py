@@ -7,6 +7,7 @@ from .serializers import *
 from .models import *
 from .forms import *
 from django.shortcuts import render
+from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, FormView
 from django.urls import reverse_lazy
@@ -356,6 +357,22 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
+class SaveWorkflowView(APIView):
+    def post(self, request):
+        pass
+
+class GetWorkflowView(APIView):
+    def get(self, request, workflow_id, version=None):
+        if version is None:
+            version = models.Max("version")
+        query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+        if query.count() == 0:
+            return Response("Invalid workflow id or version", status=status.HTTP_404_NOT_FOUND)
+        elif query.count() == 1:
+            json = query[0].json
+            return Response(json, content_type="text/json")
+        else:
+            return Response("Server error", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def export_csv(request):
     response = HttpResponse(content_type='text/csv')
@@ -403,6 +420,15 @@ def export_csv(request):
 
     return response
 
+class ExportCSVView(LoginRequiredMixin, View):
+    def get(request):
+        return export_csv(request)
+
+class ExportCSVAPIView(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    def get(request):
+        return export_csv(request)
 
 def get_weekly_data():
     # week_start = datetime.now()
