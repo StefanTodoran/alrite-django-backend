@@ -40,6 +40,7 @@ as attributes about the workflow
 Workflows are meant to be readonly and rarely modified, the purpose
 of the version field is to allow for modifications to
 be made without losing the previous workflow
+"""
 class Workflow(models.Model):
     workflow_id = models.CharField(max_length=63)
     display_name = models.CharField(max_length=255)
@@ -48,7 +49,6 @@ class Workflow(models.Model):
     created_by = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
     json = models.TextField() # Using TextField instead of JSONField because we don't need to parse/query the
                               # JSON on the server, also its not well supported on databases
-"""
 
 class Counter(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
