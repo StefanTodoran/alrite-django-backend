@@ -1,6 +1,7 @@
 import csv
 import datetime
 from datetime import timedelta, datetime
+import codecs
 
 from django.shortcuts import render
 from .serializers import *
@@ -13,6 +14,7 @@ from django.views.generic.edit import CreateView, UpdateView, FormView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.hashers import make_password
+import rest_framework
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.decorators import api_view, permission_classes
@@ -358,21 +360,52 @@ class SaveCountDataView(APIView):
         return Response("Data saved successfully")
 
 class SaveWorkflowView(APIView):
-    def post(self, request):
-        pass
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    parser_classes = [rest_framework.parsers.JSONParser]
+    def post(self, request, workflow_id):
+        query = Workflow.objects.filter(workflow_id=workflow_id)
+        if query.count() == 0:
+            next_version = 1
+        else:
+            next_version = query.aggregate(models.Max("version"))["version__max"] + 1
+
+        jsonobj = request.data
+        jsontxt = json.dumps(jsonobj)
+        Workflow.objects.create(
+            workflow_id=workflow_id,
+            version=next_version,
+            json=jsontxt,
+        )
+        return Response("Sucessfully saved workflow")
+
+class ListWorkflowsView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def get(self, request):
+        result = []
+        for entry in Workflow.objects.all():
+            result.append(dict(
+                workflow_id=entry.workflow_id,
+                version=entry.version,
+                time_created=entry.time_created,
+                created_by=entry.created_by.get_username(),
+            ))
+        return Response(result)
 
 class GetWorkflowView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
     def get(self, request, workflow_id, version=None):
         if version is None:
-            version = models.Max("version")
-        query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+
         if query.count() == 0:
             return Response("Invalid workflow id or version", status=status.HTTP_404_NOT_FOUND)
         elif query.count() == 1:
             json = query[0].json
-            return Response(json, content_type="text/json")
-        else:
-            return Response("Server error", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return HttpResponse(json, content_type="application/json")
 
 def export_csv(request):
     response = HttpResponse(content_type='text/csv')
@@ -421,12 +454,6 @@ def export_csv(request):
     return response
 
 class ExportCSVView(LoginRequiredMixin, View):
-    def get(request):
-        return export_csv(request)
-
-class ExportCSVAPIView(APIView):
-    authentication_classes = [authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
     def get(request):
         return export_csv(request)
 
