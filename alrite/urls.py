@@ -18,27 +18,25 @@ urlpatterns = [
     path('apis/saveData/', SavePatientDataView.as_view()),
     path('apis/saveCounter/', SaveCountDataView.as_view()),
 
-    # GET API endpoints for getting a workflow.
-    # Workflows are identified by their id, a short unique string without spaces,
-    # and their version, an integer than increases with changes.
-    # With these endpoints you can request a workflow from its id and version.
-    # if the version is not specified it defaults to the latest one.
-    # The workflow is returned in json format. if the given id or version don't exist,
-    # a 404 error is returned.
-    path('apis/getWorkflow/<workflow_id>/', GetWorkflowView.as_view()),
-    path('apis/getWorkflow/<workflow_id>/<int:version>/', GetWorkflowView.as_view()),
-
-    # POST API endpoint to save a workflow to the given workflow_id. The version
-    # is updated to the next available one, or 1 if this is the first workflow
-    # under this id. The workflow should be stored as json in the post data
-    # of the request. If invalid json is sent an error code is returned and the
-    # workflow is not saved.
-    # Authenication is needed to upload a workflow, and only admins will be allowed.
-    path('apis/saveWorkflow/<workflow_id>/', SaveWorkflowView.as_view()),
-
-    # GET API endpoint that returns a json list of all workflows, with their
-    # id, version, time created and author
-    path('apis/listWorkflows/', ListWorkflowsView.as_view()),
+    # API endpoints for getting and saving a workflow.
+    # Workflows are identified by their id, a short unique string without spaces or capitals.
+    # Different versions of workflows are stored using version numbers, starting at 1 and
+    # increasing as changes are made.
+    # 
+    # To get a workflow, make a GET request to one of the urls below, specifying the id
+    # and possibly the version, which defaults to the latest one.
+    # On success the json of the workflow is returned
+    # If the workflow doesn't exist, a 404 error is returned
+    # 
+    # To save a workflow, make a POST request to one of the urls below, with the body
+    # being the workflow as json. When saving a new version is created with the given
+    # workflow. If invalid json is passed in an 400 error is returned.
+    # 
+    # A GET request to the 'workflows/' directiory will return a json list of
+    # all of the workflows with their id, version, creation time and author.
+    path('apis/workflows/<workflow_id>/', WorkflowAPIView.as_view()),
+    path('apis/workflows/<workflow_id>/<int:version>/', WorkflowAPIView.as_view()),
+    path('apis/workflows/', ListWorkflowsView.as_view()),
 
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
     path('download_data/', ExportCSVView.as_view(), name="download")

@@ -42,6 +42,7 @@ of the version field is to allow for modifications to
 be made without losing the previous workflow
 """
 class Workflow(models.Model):
+    # Identifier for this workflow, should be a short string without spaces or capitals
     workflow_id = models.CharField(max_length=63)
     version = models.IntegerField(default=1)
     time_created = models.DateTimeField(auto_now_add=True)

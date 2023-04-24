@@ -1,6 +1,6 @@
 import csv
 import datetime
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 import codecs
 
 from django.shortcuts import render
@@ -359,43 +359,17 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
-class SaveWorkflowView(APIView):
-    authentication_classes = [authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class WorkflowAPIView(APIView):
+    #authentication_classes = [authentication.TokenAuthentication]
+    #permission_classes = [permissions.IsAuthenticated]
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     parser_classes = [rest_framework.parsers.JSONParser]
-    def post(self, request, workflow_id):
-        query = Workflow.objects.filter(workflow_id=workflow_id)
-        if query.count() == 0:
-            next_version = 1
-        else:
-            next_version = query.aggregate(models.Max("version"))["version__max"] + 1
 
-        jsonobj = request.data
-        jsontxt = json.dumps(jsonobj)
-        Workflow.objects.create(
-            workflow_id=workflow_id,
-            version=next_version,
-            json=jsontxt,
-        )
-        return Response("Sucessfully saved workflow")
-
-class ListWorkflowsView(APIView):
-    renderer_classes = [rest_framework.renderers.JSONRenderer]
-    def get(self, request):
-        result = []
-        for entry in Workflow.objects.all():
-            result.append(dict(
-                workflow_id=entry.workflow_id,
-                version=entry.version,
-                time_created=entry.time_created,
-                created_by=entry.created_by.get_username(),
-            ))
-        return Response(result)
-
-class GetWorkflowView(APIView):
-    renderer_classes = [rest_framework.renderers.JSONRenderer]
     def get(self, request, workflow_id, version=None):
+        """ GET endpoint to retrieve a workflow
+        tries to find a workflow with the given id and version (defaults to most recent)
+        If found, the json of the workflow is returned, and if not found a 404 error is
+        returned """
         if version is None:
             query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
         else:
@@ -403,9 +377,65 @@ class GetWorkflowView(APIView):
 
         if query.count() == 0:
             return Response("Invalid workflow id or version", status=status.HTTP_404_NOT_FOUND)
-        elif query.count() == 1:
+        else:
             json = query[0].json
             return HttpResponse(json, content_type="application/json")
+
+    def post(self, request, workflow_id, version=None):
+        """ POST endpoint to save a workflow
+        Expects the body of the post request to be the json of the workflow
+        Saves the workflow with the given workflow_id, creating a new version if
+        the workflow already exists
+        Returns a json object with parameters of the created workflow, including the
+        version, api path, time created and author
+        If invalid json is passed in a 400 error is returned """
+
+        if version is not None:
+            return Response("Modifying versions of workflows is currently not supported",
+                    status=status.HTTP_400_BAD_REQUEST)
+
+        query = Workflow.objects.filter(workflow_id=workflow_id)
+        if query.count() == 0:
+            next_version = 1
+        else:
+            next_version = query.aggregate(models.Max("version"))["version__max"] + 1
+
+        time_created = datetime.now(timezone.utc)
+        user = None
+        jsonobj = request.data
+        responseobj = dict(
+            version = next_version,
+            apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, next_version),
+            time_created = str(time_created),
+            created_by = user,
+        )
+        jsonobj.update(responseobj)
+        jsontxt = json.dumps(jsonobj)
+
+        Workflow.objects.create(
+            workflow_id=workflow_id,
+            version=next_version,
+            time_created = time_created,
+            created_by = user,
+            json=jsontxt,
+        )
+        return Response(responseobj)
+
+
+class ListWorkflowsView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def get(self, request):
+        """ GET endpoint that returns a json list of all the workflows with
+        the id, version, creation time and author. """
+        result = []
+        for entry in Workflow.objects.all():
+            result.append(dict(
+                workflow_id = entry.workflow_id,
+                version = entry.version,
+                time_created = entry.time_created,
+                created_by = None if entry.created_by is None else entry.created_by.get_username(),
+            ))
+        return Response(result)
 
 def export_csv(request):
     response = HttpResponse(content_type='text/csv')
@@ -428,7 +458,7 @@ def export_csv(request):
     patients = Patient.objects.all()
 
     for patient in patients:
-        writer.writerow([patient.app_version, 'AL' + patient.clinician.healthy_facility.code + patient.clinician.code,
+        writer.writerow([patient.app_version, 'AL{}{}'.format(patient.clinician.healthy_facility.code, patient.clinician.code),
                          patient.end_date, patient.study_id, patient.age, patient.gender,
                          patient.weight, patient.muac, patient.symptoms, patient.difficulty_breathing,
                          patient.days_with_breathing_difficulties,
@@ -454,7 +484,7 @@ def export_csv(request):
     return response
 
 class ExportCSVView(LoginRequiredMixin, View):
-    def get(request):
+    def get(self, request):
         return export_csv(request)
 
 def get_weekly_data():
