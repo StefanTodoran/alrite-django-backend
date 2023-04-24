@@ -409,7 +409,7 @@ class WorkflowAPIView(APIView):
             time_created = str(time_created),
             created_by = user,
         )
-        jsonobj.update(responseobj)
+        jsonobj['meta'] = responseobj
         jsontxt = json.dumps(jsonobj)
 
         Workflow.objects.create(
