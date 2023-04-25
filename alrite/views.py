@@ -359,6 +359,47 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
+
+def create_field(type_str):
+    if type_str == "int":
+        return models.IntegerField()
+    elif type_str == "string":
+        return models.CharField(max_length=127)
+    elif type_str == "bool":
+        return models.BooleanField()
+
+def create_model(name, fields):
+    from django.db import models
+    from django.contrib import admin
+    from django.db import connection
+
+    class Meta:
+        managed = False
+
+    attrs = {"__module__": "alrite.models", "Meta": Meta}
+    for field_params in fields:
+        model_class = getattr(models, field_params['type'])
+        attrs[field_params['name']] = model_class(**field_params.get('params', {}))
+
+    model = type(name, (models.Model,), attrs)
+
+    with connection.schema_editor() as schema_editor:
+        schema_editor.create_model(model)
+
+    admin.site.register(model, {})
+    
+    #from django.urls import clear_url_caches
+    #from django.utils.module_loading import import_module
+    #import importlib
+    #importlib.reload(import_module(settings.ROOT_URLCONF))
+    #clear_url_caches()
+
+#create_model("test_workflow", [
+#    {"name": "name", "type": "CharField", "params": {"max_length": 63}},
+#    {"name": "data", "type": "TextField"},
+#    {"name": "version", "type": "IntegerField"},
+#])
+
 class WorkflowAPIView(APIView):
     #authentication_classes = [authentication.TokenAuthentication]
     #permission_classes = [permissions.IsAuthenticated]
