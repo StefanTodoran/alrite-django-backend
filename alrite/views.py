@@ -359,9 +359,19 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
+class AutoAuthenticated():
+    """
+    Allows access only to authenticated users.
+    """
+
+    def has_permission(self, request, view):
+        return bool(True)
+
 class WorkflowAPIView(APIView):
     #authentication_classes = [authentication.TokenAuthentication]
     #permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AutoAuthenticated]
+
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     parser_classes = [rest_framework.parsers.JSONParser]
 
