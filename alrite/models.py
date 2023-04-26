@@ -34,25 +34,45 @@ class CustomUser(AbstractUser):
         # return f'{self.first_name} {self.last_name}'
         return self.username
 
-"""
-Model that stores a workflow in JSON format, as well
-as attributes about the workflow
-Workflows are meant to be readonly and rarely modified, the purpose
-of the version field is to allow for modifications to
-be made without losing the previous workflow
-"""
 class Workflow(models.Model):
+    """
+    Model that stores a workflow in JSON format, as well
+    as attributes about the workflow
+    Workflows are meant to be readonly and not modified, the purpose
+    of the version field is to allow for modifications to
+    be made without losing the previous workflow and data schema
+    """
     # Identifier for this workflow, should be a short string without spaces or capitals
-    workflow_id = models.CharField(max_length=63)
+    workflow_id = models.SlugField(max_length=63)
     version = models.IntegerField(default=1)
     time_created = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
-    json = models.TextField() # Using TextField instead of JSONField because we don't need to parse/query the
-                              # JSON on the server, also its not well supported on databases
+    created_by = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL, db_index=False)
+    # Using TextField instead of JSONField because we don't need to parse the
+    # JSON on the server, were just gonna send it back to clients.
+    json = models.TextField()
+    # Stores the names and data types of the data that will be
+    # collected by the workflow, used to create the database
+    # format is [{"name": "...", "type": "..."}, ...]
+    # where type is the name of one of the field classes, ie "CharField"
+    schema = models.JSONField()
 
     def __str__(self):
         return "{} (version {}, created {} by {})".format(
             self.workflow_id, self.version, self.time_created, self.created_by)
+
+class AbstractPatient(models.Model):
+    """
+    Abstract class that contains the default values recorded for all patients,
+    regardless of workflow
+    """
+    clinician = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
+    patient_uuid = models.UUIDField()
+    app_version = models.IntegerField(default=1)
+    workflow_version = models.IntegerField(default=1)
+    time_submitted = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 class Counter(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
