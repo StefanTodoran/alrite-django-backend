@@ -48,13 +48,11 @@ def validatePageObj(page, pageIDs, unusedPageIDs):
   if "content" not in page:
     page["content"] = missingErrorMessage("page", "content")
 
-def readWorkflowFromFile(path: str):
-  with open(path, 'r') as file:
-    workflow = json.load(file)
-
-  print(f"Successfully loaded workflow '{workflow['name']}'\n")
-
-  # Get all pageIDs and valueIDs to be able to verify uniqueness
+# Takes a workflow object and returns a tuple with two contents.
+# The first is a list of all page IDs and the second a list of all
+# value IDs. Also takes a boolean doValidation, signaling whether to
+# modify the workflow object with errors if identifiers are missing.
+def getAllIdentifiers(workflow, doValidation):
   pageIDs = []
   valueIDs = []
   
@@ -73,6 +71,18 @@ def readWorkflowFromFile(path: str):
         valueIDs.append(component["valueID"])
       elif component["component"] in needsValueID:
         component["valueID"] = missingErrorMessage("component", "valueID")
+  
+  return pageIDs, valueIDs
+
+def readWorkflowFromFile(path: str):
+  with open(path, 'r') as file:
+    workflow = json.load(file)
+
+  print(f"Successfully loaded workflow '{workflow['name']}'\n")
+  return workflow
+
+def validateWorkflow(workflow):
+  pageIDs, valueIDs = getAllIdentifiers(workflow, True)
 
   unusedPageIDs = list(pageIDs)
   unusedValueIDs = list(valueIDs)
