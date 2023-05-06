@@ -1,0 +1,58 @@
+
+body {
+    margin: 0;
+    font-family: sans-serif;
+}
+
+main, body > footer {
+    margin: 8px;
+}
+
+section {
+    margin: 15px;
+}
+
+details summary {
+    cursor: pointer;
+}
+
+summary > * {
+    display: inline;
+}
+
+summary.header {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.hidden {
+    display: none;
+}
+
+body > header {
+    padding: 5px;
+    border-bottom: 1px solid black;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    column-gap: 10px;
+}
+
+nav h1 {
+    margin: 0;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 3px solid black;
+}
+
+th, td {
+    padding: 5px;
+    border: 2px solid black;
+}
+

@@ -1,0 +1,68 @@
+{% extends 'base.html'%}
+{% block content %}
+<header>
+  <h2>
+    Workflow {{workflow.workflow_id}}
+    {% if not show_versions %}
+    (version {{workflow.version}})
+    {% endif %}
+  </h2>
+</header>
+
+<section>
+  <a href="">Edit</a>
+  <a href="">View</a>
+</section>
+
+{% if show_versions %}
+<section id="versions">
+  <h3>Versions</h3>
+
+  <table>
+    <thead> <tr>
+      <th scope="col">Version</th>
+      <th scope="col">Created by</th>
+      <th scope="col">Time created</th>
+      <th scope="col">Number of Patients</th>
+    </tr> </thead>
+
+    <tbody>
+      {% for wflow in versions %}
+      <tr>
+        <td>
+          <a href="{% url 'workflow-page-version' workflow_id=workflow.workflow_id version=wflow.version %}">{{ wflow.version }}</a>
+        </td>
+        <td>{{ wflow.created_by }}</td>
+        <td>{{ wflow.time_created }}</td>
+        <td>{{ wflow.num_patients }}</td>
+        <td> <a href="">View</a> </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section>
+  <h3>Collected data</h3>
+
+  <table>
+    <thead> <tr>
+      <th scope="col">Workflow version</th>
+      <th scope="col">Clinician</th>
+      <th scope="col">Time recorded</th>
+    </tr> </thead>
+
+    <tbody>
+      {% for patient in patients %}
+      <tr>
+        <td>{{patient.workflow_version}}</td>
+        <td>{{patient.clinician}}</td>
+        <td>{{patient.time_submitted}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock content %}

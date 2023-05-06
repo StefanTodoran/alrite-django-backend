@@ -43,8 +43,12 @@ class Workflow(models.Model):
     be made without losing the previous workflow and data schema
     """
     # Identifier for this workflow, should be a short string without spaces or capitals
-    workflow_id = models.SlugField(max_length=63)
+    workflow_id = models.CharField(max_length=63)
     version = models.IntegerField(default=1)
+    # Whether the workflow is a preview (prerelease)
+    # preview versions are meant to be temporary and are overwritten by the next
+    # uploaded workflow
+    preview = models.BooleanField(default=False)
     time_created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL, db_index=False)
     # Using TextField instead of JSONField because we don't need to parse the
@@ -52,12 +56,23 @@ class Workflow(models.Model):
     json = models.TextField()
     # Stores the names and data types of the data that will be
     # collected by the workflow, used to create the database
-    # format is [{"name": "...", "type": "..."}, ...]
-    # where type is the name of one of the field classes, ie "CharField"
+    # format is [{"name": "...", "type": "..."}, ...], more information is in custom_models.py
     schema = models.JSONField()
 
+    
+    workflow_models = {}
+
+    def dataModel():
+        if self.id not in self.workflow_models:
+            print ("registering model")
+            from . import custom_models
+            model = custom_models.workflow_to_model(self)
+            custom_models.register_model(model)
+            self.workflow_models[self.id] = model
+        return self.workflow_models[self.id]
+
     def __str__(self):
-        return "{} (version {}, created {} by {})".format(
+        return "{} v{} (created {} by {})".format(
             self.workflow_id, self.version, self.time_created, self.created_by)
 
 class AbstractPatient(models.Model):
@@ -70,6 +85,10 @@ class AbstractPatient(models.Model):
     app_version = models.IntegerField(default=1)
     workflow_version = models.IntegerField(default=1)
     time_submitted = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "Patient {} (Collected {} by {}, workflow {} v{})".format(
+            self.patient_uuid, self.time_submitted, self.clinician, self.workflow_id, self.workflow_version)
 
     class Meta:
         abstract = True
@@ -166,3 +185,4 @@ class Patient(models.Model):
 def create_auth_token(sender, instance=None, created=False,  **kwargs):
     if created:
         Token.objects.create(user=instance)
+

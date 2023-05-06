@@ -14,6 +14,7 @@ from django.views.generic.edit import CreateView, UpdateView, FormView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.hashers import make_password
+from django.http import Http404
 import rest_framework
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
@@ -97,6 +98,71 @@ def login_api(request):
     })
 
 
+class WorkflowsView(LoginRequiredMixin, TemplateView):
+    template_name = 'workflows.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(WorkflowsView, self).get_context_data(**kwargs)
+        workflows = {}
+        for workflow in Workflow.objects.all():
+            if workflow.workflow_id not in workflows or workflow.version > workflows[workflow.workflow_id]["version"]:
+                workflows[workflow.workflow_id] = dict(
+                    workflow_id = workflow.workflow_id,
+                    version = workflow.version,
+                    created_by = workflow.created_by,
+                    time_created = workflow.time_created,
+                    num_patients = 11,
+                )
+
+        context['workflows'] = list(workflows.values())
+        print (context)
+
+        return context
+
+class WorkflowInfoView(LoginRequiredMixin, TemplateView):
+    template_name = 'workflow_info.html'
+
+    def get_context_data(self, workflow_id, version=None, **kwargs):
+        context = super(WorkflowInfoView, self).get_context_data(**kwargs)
+
+        if version is None:
+            versions = []
+            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+            if query.count() == 0:
+                raise Http404("Workflow does not exist")
+
+            workflow = query[0]
+
+            versions = []
+            for entry in query:
+                versions.append(dict(
+                    version = entry.version,
+                    created_by = entry.created_by,
+                    time_created = entry.time_created,
+                    num_patients = 11,
+                ))
+            context['show_versions'] = True
+            context['versions'] = versions
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+            if query.count() == 0:
+                raise Http404("Workflow does not exist")
+            workflow = query[0]
+
+            context['show_versions'] = False
+
+        context['workflow'] = dict(
+            workflow_id = workflow.workflow_id,
+            version = workflow.version,
+        )
+
+        return context
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard.html'
+
+
 class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
@@ -106,7 +172,6 @@ class HomePageView(LoginRequiredMixin, TemplateView):
         my_list = patients_data("none", "none", 20)
 
         context = super(HomePageView, self).get_context_data(**kwargs)
-
         context.update({
             "data": my_list
         })
@@ -360,61 +425,21 @@ class SaveCountDataView(APIView):
         return Response("Data saved successfully")
 
 
-def create_field(type_str):
-    if type_str == "int":
-        return models.IntegerField()
-    elif type_str == "string":
-        return models.CharField(max_length=127)
-    elif type_str == "bool":
-        return models.BooleanField()
-
-def create_model(name, fields):
-    from django.db import models
-    from django.contrib import admin
-    from django.db import connection
-
-    class Meta:
-        managed = False
-
-    attrs = {"__module__": "alrite.models", "Meta": Meta}
-    for field_params in fields:
-        model_class = getattr(models, field_params['type'])
-        attrs[field_params['name']] = model_class(**field_params.get('params', {}))
-
-    model = type(name, (models.Model,), attrs)
-
-    with connection.schema_editor() as schema_editor:
-        schema_editor.create_model(model)
-
-    admin.site.register(model, {})
-    
-    #from django.urls import clear_url_caches
-    #from django.utils.module_loading import import_module
-    #import importlib
-    #importlib.reload(import_module(settings.ROOT_URLCONF))
-    #clear_url_caches()
-
-#create_model("test_workflow", [
-#    {"name": "name", "type": "CharField", "params": {"max_length": 63}},
-#    {"name": "data", "type": "TextField"},
-#    {"name": "version", "type": "IntegerField"},
-#])
-
 class WorkflowAPIView(APIView):
     #authentication_classes = [authentication.TokenAuthentication]
     #permission_classes = [permissions.IsAuthenticated]
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     parser_classes = [rest_framework.parsers.JSONParser]
 
-    def get(self, request, workflow_id, version=None):
+    def get(self, request, workflow_id, version=None, preview=False):
         """ GET endpoint to retrieve a workflow
         tries to find a workflow with the given id and version (defaults to most recent)
         If found, the json of the workflow is returned, and if not found a 404 error is
         returned """
         if version is None:
-            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+            query = Workflow.objects.filter(workflow_id=workflow_id, preview=preview).order_by('-version')
         else:
-            query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+            query = Workflow.objects.filter(workflow_id=workflow_id, version=version, preview=preview)
 
         if query.count() == 0:
             return Response("Invalid workflow id or version", status=status.HTTP_404_NOT_FOUND)
@@ -422,7 +447,7 @@ class WorkflowAPIView(APIView):
             json = query[0].json
             return HttpResponse(json, content_type="application/json")
 
-    def post(self, request, workflow_id, version=None):
+    def post(self, request, workflow_id, version=None, preview=False):
         """ POST endpoint to save a workflow
         Expects the body of the post request to be the json of the workflow
         Saves the workflow with the given workflow_id, creating a new version if
@@ -432,21 +457,26 @@ class WorkflowAPIView(APIView):
         If invalid json is passed in a 400 error is returned """
 
         if version is not None:
-            return Response("Modifying versions of workflows is currently not supported",
+            return Response("Modifying versions of workflows is not supported",
                     status=status.HTTP_400_BAD_REQUEST)
 
         query = Workflow.objects.filter(workflow_id=workflow_id)
         if query.count() == 0:
             next_version = 1
         else:
-            next_version = query.aggregate(models.Max("version"))["version__max"] + 1
+            next_version = query.aggregate(models.Max("version"))["version__max"]
+            last_entry = Workflow.objects.get(version=next_version)
+            if last_entry.preview:
+                last_entry.delete()
+            else:
+                next_version += 1
 
         time_created = datetime.now(timezone.utc)
         user = None
         jsonobj = request.data
         responseobj = dict(
             version = next_version,
-            apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, next_version),
+            apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, "preview" if preview else next_version),
             time_created = str(time_created),
             created_by = user,
         )
@@ -454,11 +484,13 @@ class WorkflowAPIView(APIView):
         jsontxt = json.dumps(jsonobj)
 
         Workflow.objects.create(
-            workflow_id=workflow_id,
-            version=next_version,
+            workflow_id = workflow_id,
+            version = next_version,
+            preview = preview,
             time_created = time_created,
             created_by = user,
-            json=jsontxt,
+            json = jsontxt,
+            schema = [],
         )
         return Response(responseobj)
 
@@ -473,6 +505,7 @@ class ListWorkflowsView(APIView):
             result.append(dict(
                 workflow_id = entry.workflow_id,
                 version = entry.version,
+                preview = entry.preview,
                 time_created = entry.time_created,
                 created_by = None if entry.created_by is None else entry.created_by.get_username(),
             ))
@@ -554,3 +587,7 @@ def convertListToDict2(li):
 
     # dic = dict(sorted(dic.items(), key=lambda x: x[1], reverse=True))
     return dic
+import csv
+import datetime
+from datetime import timedelta, datetime, timezone
+import codecs
