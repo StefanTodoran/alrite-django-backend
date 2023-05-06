@@ -1,0 +1,3 @@
+[submodule "static/alrite-workflow-editor"]
+	path = static/alrite-workflow-editor
+	url = ../alrite-workflow-editor

@@ -39,10 +39,10 @@ urlpatterns = [
     # 
     # A GET request to the 'workflows/' directiory will return a json list of
     # all of the workflows with their id, version, creation time and author.
-    path('apis/workflows/<workflow_id>', WorkflowAPIView.as_view()),
-    path('apis/workflows/<workflow_id>/<int:version>', WorkflowAPIView.as_view()),
-    path('apis/workflows/<workflow_id>/preview', WorkflowAPIView.as_view(), {"preview": True}),
-    path('apis/workflows', ListWorkflowsView.as_view()),
+    path('apis/workflows/<workflow_id>/', WorkflowAPIView.as_view()),
+    path('apis/workflows/<workflow_id>/<int:version>/', WorkflowAPIView.as_view()),
+    path('apis/workflows/<workflow_id>/preview/', WorkflowAPIView.as_view(), {"preview": True}),
+    path('apis/workflows/', ListWorkflowsView.as_view()),
 
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
     path('download_data/', ExportCSVView.as_view(), name="download")
