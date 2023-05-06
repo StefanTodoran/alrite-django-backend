@@ -32,6 +32,7 @@ from bs4 import BeautifulSoup as bs
 from django.db.models import F, Count
 from django.db.models import Sum
 
+from . import validation
 
 # Create your views here.
 class RegisterView(LoginRequiredMixin, CreateView):
@@ -424,10 +425,19 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
+class AutoAuthenticated():
+    """
+    Allows access only to authenticated users.
+    """
+
+    def has_permission(self, request, view):
+        return bool(True)
 
 class WorkflowAPIView(APIView):
     #authentication_classes = [authentication.TokenAuthentication]
     #permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AutoAuthenticated]
+
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     parser_classes = [rest_framework.parsers.JSONParser]
 
@@ -460,6 +470,11 @@ class WorkflowAPIView(APIView):
             return Response("Modifying versions of workflows is not supported",
                     status=status.HTTP_400_BAD_REQUEST)
 
+        jsonobj = request.data
+        validation_result = validation.validateWorkflow(jsonobj)
+        if len(validation_result) != 0:
+            return Response(validation_result, status=status.HTTP_400_BAD_REQUEST)
+
         query = Workflow.objects.filter(workflow_id=workflow_id)
         if query.count() == 0:
             next_version = 1
@@ -473,7 +488,7 @@ class WorkflowAPIView(APIView):
 
         time_created = datetime.now(timezone.utc)
         user = None
-        jsonobj = request.data
+
         responseobj = dict(
             version = next_version,
             apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, "preview" if preview else next_version),
