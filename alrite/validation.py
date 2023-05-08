@@ -28,6 +28,8 @@ def ensureUniqueID(type: str, obj, prop: str, IDs: set, required: bool):
   elif required:
     obj[prop] = missingErrorMessage(type, prop)
     return False
+  else:
+    return True
 
 # Verifies the the property on the given object is an actual
 # identifier in use somewhere. Supports optional properties.
@@ -42,6 +44,8 @@ def isValidID(type: str, obj, prop: str, IDs: set, required: bool):
   elif required:
     obj[prop] = missingErrorMessage(type, prop)
     return False
+  else:
+    return True
 
 # =========================== #
 # PAGE & COMPONENT VALIDATION #
@@ -49,8 +53,8 @@ def isValidID(type: str, obj, prop: str, IDs: set, required: bool):
 def validatePageObj(originalPage, validatedPage, pageIDs: set, unusedPageIDs: set):
   valid = True
 
-  valid = ensureUniqueID("page", validatedPage, "pageID", unusedPageIDs, True) and False
-  valid = isValidID("page", validatedPage, "defaultLink", pageIDs, True) and False
+  valid = ensureUniqueID("page", validatedPage, "pageID", unusedPageIDs, True) and valid
+  valid = isValidID("page", validatedPage, "defaultLink", pageIDs, True) and valid
 
   if originalPage["defaultLink"] == originalPage["pageID"]:
     validatedPage["defaultLink"] = "Page should not link to itself!"
