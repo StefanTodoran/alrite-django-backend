@@ -457,6 +457,35 @@ class WorkflowAPIView(APIView):
             json = query[0].json
             return HttpResponse(json, content_type="application/json")
 
+    def extract_schema(self, errors):
+        default_types = {
+            "TextInput": "default",
+            "Counter": "numeric",
+            "MultipleChoice": "default",
+        }
+        mapping = {
+            "default": {"type": "CharField", "params": {"max_length": 127}},
+            "numeric": {"type": "IntegerField"},
+        }
+        
+        schema = []
+        for page in errors['pages']:
+            for component in page['content']:
+                if 'valueID' in component:
+                    type = component.get('type', default_types[component['component']])
+                    column = mapping.get(type, mapping['default'])
+                    column['name'] = component['valueID']
+
+                    if 'params' in component:
+                        if 'params' in column:
+                            column['params'].update(component['params'])
+                        else:
+                            column['params'] = component['params']
+
+                    schema.append(column)
+
+        return schema
+
     def post(self, request, workflow_id, version=None, preview=False):
         """ POST endpoint to save a workflow
         Expects the body of the post request to be the json of the workflow
@@ -471,9 +500,14 @@ class WorkflowAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
 
         jsonobj = request.data
-        validation_result = validation.validateWorkflow(jsonobj)
-        if len(validation_result) != 0:
-            return Response(validation_result, status=status.HTTP_400_BAD_REQUEST)
+        print (jsonobj)
+        errors_obj, valid = validation.validateWorkflow(jsonobj)
+        schema = self.extract_schema(jsonobj)
+        print (schema)
+
+        if not valid:
+            print (errors_obj)
+            return Response(errors_obj, status=status.HTTP_400_BAD_REQUEST)
 
         query = Workflow.objects.filter(workflow_id=workflow_id)
         if query.count() == 0:

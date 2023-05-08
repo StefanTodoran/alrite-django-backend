@@ -10,20 +10,14 @@ def addDefaults(Class, **defaults):
         return Class(**kwargs)
     return newClass
 
-field_types = {
-    "integer": models.IntegerField,
-    "text": models.TextField,
-    "string": addDefaults(models.CharField, max_length=127),
-    "boolean": models.BooleanField,
-}
-
 def schema_to_model(name, schema):
     class Meta:
         managed = False
 
     attrs = {"__module__": "alrite.models", "Meta": Meta}
     for field_params in schema:
-        model_class = field_types[field_params['type']]
+        model_class = getattr(models, field_params['type'])
+        #model_class = field_types[field_params['type']]
         attrs[field_params['name']] = model_class(**field_params.get('params', {}))
 
     model = type(name, (models.Model,), attrs)
