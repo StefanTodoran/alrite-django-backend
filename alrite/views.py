@@ -500,13 +500,10 @@ class WorkflowAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
 
         jsonobj = request.data
-        print (jsonobj)
         errors_obj, valid = validation.validateWorkflow(jsonobj)
         schema = self.extract_schema(jsonobj)
-        print (schema)
 
         if not valid:
-            print (errors_obj)
             return Response(errors_obj, status=status.HTTP_400_BAD_REQUEST)
 
         query = Workflow.objects.filter(workflow_id=workflow_id)
@@ -539,7 +536,7 @@ class WorkflowAPIView(APIView):
             time_created = time_created,
             created_by = user,
             json = jsontxt,
-            schema = [],
+            schema = schema,
         )
         return Response(responseobj)
 
