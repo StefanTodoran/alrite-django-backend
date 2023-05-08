@@ -21,40 +21,58 @@ def ensureUniqueID(type: str, obj, prop: str, IDs: set, required: bool):
     value = obj[prop]
     if value in IDs:
       IDs.discard(value)
+      return True
     else:
       obj[prop] = f"Duplicate {prop} detected!"
+      return False
   elif required:
     obj[prop] = missingErrorMessage(type, prop)
+    return False
 
 # Verifies the the property on the given object is an actual
 # identifier in use somewhere. Supports optional properties.
 def isValidID(type: str, obj, prop: str, IDs: set, required: bool):
   if prop in obj:
     value = obj[prop]
-    if value not in IDs:
+    if value in IDs:
+      return True
+    else:
       obj[prop] = f"Provided {prop} is not used by any page/component."
+      return False
   elif required:
     obj[prop] = missingErrorMessage(type, prop)
+    return False
 
 # =========================== #
 # PAGE & COMPONENT VALIDATION #
 
 def validatePageObj(originalPage, validatedPage, pageIDs: set, unusedPageIDs: set):
-  ensureUniqueID("page", validatedPage, "pageID", unusedPageIDs, True)
-  isValidID("page", validatedPage, "defaultLink", pageIDs, True)
+  valid = True
+
+  valid = ensureUniqueID("page", validatedPage, "pageID", unusedPageIDs, True) and False
+  valid = isValidID("page", validatedPage, "defaultLink", pageIDs, True) and False
 
   if originalPage["defaultLink"] == originalPage["pageID"]:
     validatedPage["defaultLink"] = "Page should not link to itself!"
+    valid = False
   
   if "title" not in originalPage:
     validatedPage["title"] = missingErrorMessage("page", "title")
+    valid = False
   
   if "content" not in originalPage:
     validatedPage["content"] = missingErrorMessage("page", "content")
+    valid = False
+
+  return valid
 
 def validateComponentObj(originalComponent, validatedComponent, valueIDs: set, unusedValueIDs: set):
+  valid = True
+
   componentType = originalComponent["component"]
-  ensureUniqueID(componentType, validatedComponent, "valueID", unusedValueIDs, componentType in needsValueID)
+  valid = ensureUniqueID(componentType, validatedComponent, "valueID", unusedValueIDs, componentType in needsValueID) and valid
+
+  return valid
 
 # Takes a workflow object and returns a tuple with two contents.
 # The first is a set of all page IDs and the second a set of all
@@ -92,19 +110,21 @@ def validateWorkflow(workflow):
   unusedPageIDs = copy.copy(pageIDs)
   unusedValueIDs = copy.copy(valueIDs)
 
+  valid = True
+
   for pageIndex in range(len(workflow["pages"])):
     originalPage = workflow["pages"][pageIndex]
     validatedPage = artifact["pages"][pageIndex]
 
-    validatePageObj(originalPage, validatedPage, pageIDs, unusedPageIDs)
+    valid = validatePageObj(originalPage, validatedPage, pageIDs, unusedPageIDs) and valid
 
     for componentIndex in range(len(originalPage["content"])):
       originalComponent = originalPage["content"][componentIndex]
       validatedComponent = validatedPage["content"][componentIndex]
 
-      validateComponentObj(originalComponent, validatedComponent, valueIDs, unusedValueIDs)
+      valid = validateComponentObj(originalComponent, validatedComponent, valueIDs, unusedValueIDs) and valid
 
-  return artifact
+  return artifact, valid
 
 # ============== #
 # VALIDATION CLI #
@@ -124,8 +144,13 @@ if __name__ == "__main__":
   else:
     print(f"Reading workflow from '{sys.argv[1]}'")
     data = readWorkflowFromFile(sys.argv[1])
-    artifact = validateWorkflow(data)
+    artifact, valid = validateWorkflow(data)
     
+    if valid: 
+      print("Workflow valid!")
+    else:
+      print("Workflow invalid!")
+
     print(f"Writing validation artifact to '{sys.argv[2]}'")
     with open(sys.argv[2], 'w') as file:
       json.dump(artifact, file)
