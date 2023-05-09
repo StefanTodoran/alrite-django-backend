@@ -15,7 +15,7 @@
       <img src="{% static 'images/alrite_logo.png' %}" alt="" height="45px" width="45px">
       <h1>{% block header %}Alrite{% endblock header %}</h1>
       <a href="{% url 'dashboard' %}">Dashboard</a>
-      <a href="{% static 'alrite-workflow-editor/index.html' %}">Editor</a>
+      <a href="{% url 'editor' %}">Editor</a>
       <a href="{% url 'workflows' %}">Workflows</a>
       <a href="{% url 'clinicians' %}">Clinicians</a>
       <a href="">Patients</a>
@@ -24,8 +24,8 @@
   </header>
 
   <main>
-     {% block content %}
-     {% endblock content %}
+    {% block content %}
+    {% endblock content %}
   </main>
 
   <footer>

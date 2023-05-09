@@ -15,6 +15,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.hashers import make_password
 from django.http import Http404
+from django.contrib import staticfiles
 import rest_framework
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
@@ -98,70 +99,6 @@ def login_api(request):
         'token': token
     })
 
-
-class WorkflowsView(LoginRequiredMixin, TemplateView):
-    template_name = 'workflows.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(WorkflowsView, self).get_context_data(**kwargs)
-        workflows = {}
-        for workflow in Workflow.objects.all():
-            if workflow.workflow_id not in workflows or workflow.version > workflows[workflow.workflow_id]["version"]:
-                workflows[workflow.workflow_id] = dict(
-                    workflow_id = workflow.workflow_id,
-                    version = workflow.version,
-                    created_by = workflow.created_by,
-                    time_created = workflow.time_created,
-                    num_patients = 11,
-                )
-
-        context['workflows'] = list(workflows.values())
-        print (context)
-
-        return context
-
-class WorkflowInfoView(LoginRequiredMixin, TemplateView):
-    template_name = 'workflow_info.html'
-
-    def get_context_data(self, workflow_id, version=None, **kwargs):
-        context = super(WorkflowInfoView, self).get_context_data(**kwargs)
-
-        if version is None:
-            versions = []
-            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
-            if query.count() == 0:
-                raise Http404("Workflow does not exist")
-
-            workflow = query[0]
-
-            versions = []
-            for entry in query:
-                versions.append(dict(
-                    version = entry.version,
-                    created_by = entry.created_by,
-                    time_created = entry.time_created,
-                    num_patients = 11,
-                ))
-            context['show_versions'] = True
-            context['versions'] = versions
-        else:
-            query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
-            if query.count() == 0:
-                raise Http404("Workflow does not exist")
-            workflow = query[0]
-
-            context['show_versions'] = False
-
-        context['workflow'] = dict(
-            workflow_id = workflow.workflow_id,
-            version = workflow.version,
-        )
-
-        return context
-
-
-class DashboardView(LoginRequiredMixin, TemplateView):
-    template_name = 'dashboard.html'
 
 
 class HomePageView(LoginRequiredMixin, TemplateView):
@@ -425,6 +362,175 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
+def export_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename=Alrite_Dataset_' + str(datetime.now()) + '.csv'
+
+    writer = csv.writer(response)
+    writer.writerow(
+        ['app_version', 'clinician', 'date', 'patient_study_id', 'age(months)', 'gender', 'weight', 'muac', 'symptoms',
+         'difficulty_breathing', 'days_with_breathing_difficulties', 'hiv_status', 'child_in_hiv_care',
+         'temperature', 'febrile_to_touch', 'blood_oxygen_saturation', 'respiratory_rate', 'breathing_rate',
+         'respiratory_rate_score', 'stridor', 'nasal_flaring', 'wheezing', 'stethoscope_used',
+         'chest_indrawing', 'bronchodilator', 'bronchodilator_not_given_reason', 'duration', 'diagnosis_1',
+         'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6', 'diagnosis_7',
+         'diagnosis_8', 'diagnosis_9', 'diagnosis_10',
+         'diagnosis_11', 'respiratory_rate_2', 'breathing_rate_2', 'respiratory_rate_score_2',
+         'wheezing_2', 'chest_indrawing_2', 'wheezing_before_this_illness', 'child_breathless',
+         'breathing_difficulties_last_year', 'child_ever_had_eczema', 'child_parents_with_allergies',
+         'smoke_tobacco', 'use_kerosene', 'clinician_diagnosis', 'clinician_treatment' 'incomplete'])
+
+    patients = Patient.objects.all()
+
+    for patient in patients:
+        writer.writerow([patient.app_version, 'AL{}{}'.format(patient.clinician.healthy_facility.code, patient.clinician.code),
+                         patient.end_date, patient.study_id, patient.age, patient.gender,
+                         patient.weight, patient.muac, patient.symptoms, patient.difficulty_breathing,
+                         patient.days_with_breathing_difficulties,
+                         patient.hiv_status, patient.child_in_hiv_care, patient.temperature, patient.febrile_to_touch,
+                         patient.blood_oxygen_saturation, patient.respiratory_rate, patient.breathing_rate,
+                         patient.respiratory_rate_score,
+                         patient.stridor, patient.nasal_flaring, patient.wheezing, patient.stethoscope_used,
+                         patient.chest_indrawing,
+                         patient.bronchodilator, patient.bronchodilator_not_given_reason, patient.duration,
+                         patient.diagnosis_1,
+                         patient.diagnosis_2, patient.diagnosis_3, patient.diagnosis_4, patient.diagnosis_5,
+                         patient.diagnosis_6,
+                         patient.diagnosis_7, patient.diagnosis_8, patient.diagnosis_9, patient.diagnosis_10,
+                         patient.diagnosis_11,
+                         patient.respiratory_rate_2, patient.breathing_rate_2, patient.respiratory_rate_score_2,
+                         patient.wheezing_2, patient.chest_indrawing_2, patient.wheezing_before_this_illness,
+                         patient.child_breathless, patient.breathing_difficulties_last_year,
+                         patient.child_ever_had_eczema,
+                         patient.child_parents_with_allergies, patient.smoke_tobacco, patient.use_kerosene,
+                         patient.clinician_diagnosis,
+                         patient.clinician_treatment, patient.incomplete])
+
+    return response
+
+class ExportCSVView(LoginRequiredMixin, View):
+    def get(self, request):
+        return export_csv(request)
+
+def get_weekly_data():
+    # week_start = datetime.now()
+    week_start = Patient.objects.latest('start_date').start_date
+    week_start -= timedelta(days=week_start.weekday())
+    week_end = week_start + timedelta(days=7)
+
+    patients = Patient.objects.filter(start_date__gte=week_start, start_date__lt=week_end) \
+        .values_list('clinician__username').annotate(count=Count('clinician'))
+    patients = list(patients)
+    patients = convertListToDict2(patients)
+    print(patients)
+
+    all_patients = Patient.objects.all().values_list('clinician__username').annotate(count=Count('clinician'))
+    all_patients = list(all_patients)
+    all_patients = convertListToDict2(all_patients)
+    print(all_patients)
+
+    return [patients, all_patients]
+
+
+def convertListToDict2(li):
+    tur = tuple(li)
+    dic = dict((x, y) for x, y in tur)
+
+    # dic = dict(sorted(dic.items(), key=lambda x: x[1], reverse=True))
+    return dic
+
+
+
+# Workflow related views
+
+class WorkflowsView(LoginRequiredMixin, TemplateView):
+    """
+    View that displays a table of all the workflows and relevant stats about them.
+    Links to workflow info pages for each of them.
+    """
+    template_name = 'workflows.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(WorkflowsView, self).get_context_data(**kwargs)
+        workflows = {}
+        for workflow in Workflow.objects.all():
+            if workflow.workflow_id not in workflows or workflow.version > workflows[workflow.workflow_id]["version"]:
+                workflows[workflow.workflow_id] = dict(
+                    workflow_id = workflow.workflow_id,
+                    version = workflow.version,
+                    created_by = workflow.created_by,
+                    time_created = workflow.time_created,
+                    num_patients = 11,
+                )
+
+        context['workflows'] = list(workflows.values())
+        print (context)
+
+        return context
+
+class WorkflowInfoView(LoginRequiredMixin, TemplateView):
+    """
+    View that displays specific info about a workflow, including
+    the previous versions of it, the patient data collected by it,
+    and links to edit or delete it.
+    """
+    template_name = 'workflow_info.html'
+
+    def get_context_data(self, workflow_id, version=None, **kwargs):
+        context = super(WorkflowInfoView, self).get_context_data(**kwargs)
+
+        if version is None:
+            versions = []
+            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+            if query.count() == 0:
+                raise Http404("Workflow does not exist")
+
+            workflow = query[0]
+
+            versions = []
+            for entry in query:
+                versions.append(dict(
+                    version = entry.version,
+                    created_by = entry.created_by,
+                    time_created = entry.time_created,
+                    num_patients = 11,
+                ))
+            context['show_versions'] = True
+            context['versions'] = versions
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+            if query.count() == 0:
+                raise Http404("Workflow does not exist")
+            workflow = query[0]
+
+            context['show_versions'] = False
+
+        context['workflow'] = dict(
+            workflow_id = workflow.workflow_id,
+            version = workflow.version,
+        )
+
+        return context
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    """ View that summarizes important info about workflows
+    and the data collected, meant to be the landing
+    page for the backend """
+    template_name = 'dashboard.html'
+
+
+class EditorView(LoginRequiredMixin, View):
+    """ View for development that hosts the workflow
+    editor at a url (this will be done by the webserver
+    once deployed) """
+    def get(self, request, workflow_id=None, path="index.html"):
+        return staticfiles.views.serve(request, "alrite-workflow-editor/" + path)
+
+
+
+# API Views
+
 class AutoAuthenticated():
     """
     Allows access only to authenticated users.
@@ -541,7 +647,7 @@ class WorkflowAPIView(APIView):
         return Response(responseobj)
 
 
-class ListWorkflowsView(APIView):
+class ListWorkflowsAPIView(APIView):
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def get(self, request):
         """ GET endpoint that returns a json list of all the workflows with
@@ -557,83 +663,9 @@ class ListWorkflowsView(APIView):
             ))
         return Response(result)
 
-def export_csv(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=Alrite_Dataset_' + str(datetime.now()) + '.csv'
+class SaveWorkflowPatientAPIView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def post(self, request):
+        """ POST endpoint to upload patient data collected by a workflow """
+        pass
 
-    writer = csv.writer(response)
-    writer.writerow(
-        ['app_version', 'clinician', 'date', 'patient_study_id', 'age(months)', 'gender', 'weight', 'muac', 'symptoms',
-         'difficulty_breathing', 'days_with_breathing_difficulties', 'hiv_status', 'child_in_hiv_care',
-         'temperature', 'febrile_to_touch', 'blood_oxygen_saturation', 'respiratory_rate', 'breathing_rate',
-         'respiratory_rate_score', 'stridor', 'nasal_flaring', 'wheezing', 'stethoscope_used',
-         'chest_indrawing', 'bronchodilator', 'bronchodilator_not_given_reason', 'duration', 'diagnosis_1',
-         'diagnosis_2', 'diagnosis_3', 'diagnosis_4', 'diagnosis_5', 'diagnosis_6', 'diagnosis_7',
-         'diagnosis_8', 'diagnosis_9', 'diagnosis_10',
-         'diagnosis_11', 'respiratory_rate_2', 'breathing_rate_2', 'respiratory_rate_score_2',
-         'wheezing_2', 'chest_indrawing_2', 'wheezing_before_this_illness', 'child_breathless',
-         'breathing_difficulties_last_year', 'child_ever_had_eczema', 'child_parents_with_allergies',
-         'smoke_tobacco', 'use_kerosene', 'clinician_diagnosis', 'clinician_treatment' 'incomplete'])
-
-    patients = Patient.objects.all()
-
-    for patient in patients:
-        writer.writerow([patient.app_version, 'AL{}{}'.format(patient.clinician.healthy_facility.code, patient.clinician.code),
-                         patient.end_date, patient.study_id, patient.age, patient.gender,
-                         patient.weight, patient.muac, patient.symptoms, patient.difficulty_breathing,
-                         patient.days_with_breathing_difficulties,
-                         patient.hiv_status, patient.child_in_hiv_care, patient.temperature, patient.febrile_to_touch,
-                         patient.blood_oxygen_saturation, patient.respiratory_rate, patient.breathing_rate,
-                         patient.respiratory_rate_score,
-                         patient.stridor, patient.nasal_flaring, patient.wheezing, patient.stethoscope_used,
-                         patient.chest_indrawing,
-                         patient.bronchodilator, patient.bronchodilator_not_given_reason, patient.duration,
-                         patient.diagnosis_1,
-                         patient.diagnosis_2, patient.diagnosis_3, patient.diagnosis_4, patient.diagnosis_5,
-                         patient.diagnosis_6,
-                         patient.diagnosis_7, patient.diagnosis_8, patient.diagnosis_9, patient.diagnosis_10,
-                         patient.diagnosis_11,
-                         patient.respiratory_rate_2, patient.breathing_rate_2, patient.respiratory_rate_score_2,
-                         patient.wheezing_2, patient.chest_indrawing_2, patient.wheezing_before_this_illness,
-                         patient.child_breathless, patient.breathing_difficulties_last_year,
-                         patient.child_ever_had_eczema,
-                         patient.child_parents_with_allergies, patient.smoke_tobacco, patient.use_kerosene,
-                         patient.clinician_diagnosis,
-                         patient.clinician_treatment, patient.incomplete])
-
-    return response
-
-class ExportCSVView(LoginRequiredMixin, View):
-    def get(self, request):
-        return export_csv(request)
-
-def get_weekly_data():
-    # week_start = datetime.now()
-    week_start = Patient.objects.latest('start_date').start_date
-    week_start -= timedelta(days=week_start.weekday())
-    week_end = week_start + timedelta(days=7)
-
-    patients = Patient.objects.filter(start_date__gte=week_start, start_date__lt=week_end) \
-        .values_list('clinician__username').annotate(count=Count('clinician'))
-    patients = list(patients)
-    patients = convertListToDict2(patients)
-    print(patients)
-
-    all_patients = Patient.objects.all().values_list('clinician__username').annotate(count=Count('clinician'))
-    all_patients = list(all_patients)
-    all_patients = convertListToDict2(all_patients)
-    print(all_patients)
-
-    return [patients, all_patients]
-
-
-def convertListToDict2(li):
-    tur = tuple(li)
-    dic = dict((x, y) for x, y in tur)
-
-    # dic = dict(sorted(dic.items(), key=lambda x: x[1], reverse=True))
-    return dic
-import csv
-import datetime
-from datetime import timedelta, datetime, timezone
-import codecs

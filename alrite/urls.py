@@ -42,8 +42,17 @@ urlpatterns = [
     path('apis/workflows/<workflow_id>/', WorkflowAPIView.as_view()),
     path('apis/workflows/<workflow_id>/<int:version>/', WorkflowAPIView.as_view()),
     path('apis/workflows/<workflow_id>/preview/', WorkflowAPIView.as_view(), {"preview": True}),
-    path('apis/workflows/', ListWorkflowsView.as_view()),
+    path('apis/workflows/', ListWorkflowsAPIView.as_view()),
 
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
     path('download_data/', ExportCSVView.as_view(), name="download")
 ]
+
+if settings.DEBUG:
+    urlpatterns.extend([
+        # hack until production to host workflow
+        path('editor/', EditorView.as_view(), name='editor'),
+        path('editor/<workflow_id>', EditorView.as_view(), name='editor-workflow'),
+        path('editor/<path:path>', EditorView.as_view()),
+    ])
+
