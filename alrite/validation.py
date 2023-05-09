@@ -16,33 +16,33 @@ def missingErrorMessage(type: str, prop: str) -> str:
 
 # Verifies that the given ID property is unique given a set
 # of possible ID values. Beware: modifies the provided set!
-def ensureUniqueID(type: str, obj, prop: str, IDs: set, required: bool):
-  if prop in obj:
-    value = obj[prop]
+def ensureUniqueID(type: str, original, validated, prop: str, IDs: set, required: bool):
+  if prop in original:
+    value = original[prop]
     if value in IDs:
       IDs.discard(value)
       return True
     else:
-      obj[prop] = f"Duplicate {prop} detected!"
+      validated[prop] = f"Duplicate {prop} detected!"
       return False
   elif required:
-    obj[prop] = missingErrorMessage(type, prop)
+    validated[prop] = missingErrorMessage(type, prop)
     return False
   else:
     return True
 
 # Verifies the the property on the given object is an actual
 # identifier in use somewhere. Supports optional properties.
-def isValidID(type: str, obj, prop: str, IDs: set, required: bool):
-  if prop in obj:
-    value = obj[prop]
+def isValidID(type: str, original, validated, prop: str, IDs: set, required: bool):
+  if prop in original:
+    value = original[prop]
     if value in IDs:
       return True
     else:
-      obj[prop] = f"Provided {prop} is not used by any page/component."
+      validated[prop] = f"Provided {prop} is not used by any page/component."
       return False
   elif required:
-    obj[prop] = missingErrorMessage(type, prop)
+    validated[prop] = missingErrorMessage(type, prop)
     return False
   else:
     return True
@@ -53,8 +53,8 @@ def isValidID(type: str, obj, prop: str, IDs: set, required: bool):
 def validatePageObj(originalPage, validatedPage, pageIDs: set, unusedPageIDs: set):
   valid = True
 
-  valid = ensureUniqueID("page", validatedPage, "pageID", unusedPageIDs, True) and valid
-  valid = isValidID("page", validatedPage, "defaultLink", pageIDs, True) and valid
+  valid = ensureUniqueID("page", originalPage, validatedPage, "pageID", unusedPageIDs, True) and valid
+  valid = isValidID("page", originalPage, validatedPage, "defaultLink", pageIDs, True) and valid
 
   if originalPage["defaultLink"] == originalPage["pageID"]:
     validatedPage["defaultLink"] = "Page should not link to itself!"
@@ -74,7 +74,7 @@ def validateComponentObj(originalComponent, validatedComponent, valueIDs: set, u
   valid = True
 
   componentType = originalComponent["component"]
-  valid = ensureUniqueID(componentType, validatedComponent, "valueID", unusedValueIDs, componentType in needsValueID) and valid
+  valid = ensureUniqueID(componentType, originalComponent, validatedComponent, "valueID", unusedValueIDs, componentType in needsValueID) and valid
 
   return valid
 
@@ -104,10 +104,33 @@ def getAllIdentifiers(workflow, artifact):
   
   return pageIDs, valueIDs
 
+def deepCopyWorkflowStructure(workflow):
+  artifact = {
+    "pages": [],
+  }
+  
+  for pageIndex in range(len(workflow["pages"])):
+    originalPage = workflow["pages"][pageIndex]
+
+    artifact["pages"].append({
+      "pageID": originalPage["pageID"],
+      "content": [],
+    })
+    validatedPage = artifact["pages"][pageIndex]
+
+    for componentIndex in range(len(originalPage["content"])):
+      originalComponent = originalPage["content"][componentIndex]
+
+      validatedPage["content"].append({
+        "component": originalComponent["component"]
+      })
+
+  return artifact
+
 # Validates the given workflow, returning an json-style object where
 # properties map to error messages. Does not mutate the input workflow.
 def validateWorkflow(workflow):
-  artifact = copy.deepcopy(workflow)
+  artifact = deepCopyWorkflowStructure(workflow)
   
   pageIDs, valueIDs = getAllIdentifiers(workflow, True)
 
