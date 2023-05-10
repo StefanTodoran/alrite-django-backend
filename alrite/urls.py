@@ -12,9 +12,9 @@ urlpatterns = [
     # new changes
     # path('apis/login/', obtain_auth_token),
     path('', DashboardView.as_view(), name='dashboard'),
-    path('workflows', WorkflowsView.as_view(), name='workflows'),
-    path('workflows/<workflow_id>', WorkflowInfoView.as_view(), name='workflow-page'),
-    path('workflows/<workflow_id>/<int:version>', WorkflowInfoView.as_view(), name='workflow-page-version'),
+    path('workflows/', WorkflowsView.as_view(), name='workflows'),
+    path('workflows/<workflow_id>/', WorkflowInfoView.as_view(), name='workflow-info'),
+    path('workflows/<workflow_id>/<int:version>/', WorkflowInfoView.as_view(), name='workflow-info-version'),
 
     path('apis/login/', login_api),
     path('registration/', RegisterView.as_view(), name='register'),

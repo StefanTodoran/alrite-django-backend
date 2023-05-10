@@ -32,6 +32,10 @@ def register_model(model):
     #admin.site.register(model, {})
     pass
 
+def has_table(entry):
+    modelname = 'Workflow_{}_{}'.format(entry.workflow_id, entry.version)
+    return modelname in connection.introspection.table_names()
+
 def create_model(model):
     # test if table has been created
     if model._meta.db_table not in connection.introspection.table_names():

@@ -20,7 +20,7 @@
         <td>
           <details ontoggle="">
             <summary>
-              <a href="workflows/{{ workflow.workflow_id }}">{{ workflow.workflow_id }}</a>
+              <a href="{% url 'workflow-info' workflow_id=workflow.workflow_id %}">{{ workflow.workflow_id }}</a>
             </summary>
           </details>
         </td>

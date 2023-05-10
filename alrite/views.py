@@ -505,6 +505,25 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
 
             context['show_versions'] = False
 
+        patients = []
+        if workflow.hasmodel():
+            for patient in workflow.datamodel().objects.all()[:50]:
+                values = []
+                for col in workflow.schema:
+                    values.append(getattr(patient, col['name']))
+                patients.append(dict(
+                    workflow_version = patient.workflow_version,
+                    clinician = patient.clinician,
+                    time_submitted = patient.time_submitted,
+                    values = values,
+                ))
+        context['patients'] = patients
+
+        column_titles = []
+        for col in workflow.schema:
+            column_titles.append(col['name'].replace('-', ' ').replace('_', ' ').capitalize())
+        context['column_titles'] = column_titles
+
         context['workflow'] = dict(
             workflow_id = workflow.workflow_id,
             version = workflow.version,
@@ -665,7 +684,21 @@ class ListWorkflowsAPIView(APIView):
 
 class SaveWorkflowPatientAPIView(APIView):
     renderer_classes = [rest_framework.renderers.JSONRenderer]
-    def post(self, request):
+    def post(self, request, workflow_id, version):
         """ POST endpoint to upload patient data collected by a workflow """
-        pass
+        query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+        if query.count() == 0:
+            return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        workflow = query[0]
+        valid_keys = [field.name for field in workflow.schema]
+
+        data = {}
+        for key, value in request.data.items():
+            if key in valid_keys:
+                data[key] = value
+
+        workflow.dataModel().objects.create(**data)
+
+
 

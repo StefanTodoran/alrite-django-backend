@@ -10,8 +10,7 @@
 </header>
 
 <section>
-  <a href="">Edit</a>
-  <a href="">View</a>
+  <a href="{% url 'editor-workflow' workflow_id=workflow.workflow_id %}">Open in editor</a>
 </section>
 
 {% if show_versions %}
@@ -30,7 +29,7 @@
       {% for wflow in versions %}
       <tr>
         <td>
-          <a href="{% url 'workflow-page-version' workflow_id=workflow.workflow_id version=wflow.version %}">{{ wflow.version }}</a>
+          <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=wflow.version %}">{{ wflow.version }}</a>
         </td>
         <td>{{ wflow.created_by }}</td>
         <td>{{ wflow.time_created }}</td>
@@ -51,6 +50,9 @@
       <th scope="col">Workflow version</th>
       <th scope="col">Clinician</th>
       <th scope="col">Time recorded</th>
+      {% for col_title in column_titles %}
+      <th scope="col">{{col_title}}</th>
+      {% endfor %}
     </tr> </thead>
 
     <tbody>
@@ -59,6 +61,9 @@
         <td>{{patient.workflow_version}}</td>
         <td>{{patient.clinician}}</td>
         <td>{{patient.time_submitted}}</td>
+        {% for value in patient.values %}
+        <td>{{value}}</td>
+        {% endfor %}
       </tr>
       {% endfor %}
     </tbody>

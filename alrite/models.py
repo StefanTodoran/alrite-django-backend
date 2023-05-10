@@ -62,14 +62,19 @@ class Workflow(models.Model):
     
     workflow_models = {}
 
-    def dataModel():
+    def datamodel(self):
         if self.id not in self.workflow_models:
             print ("registering model")
             from . import custom_models
             model = custom_models.workflow_to_model(self)
             custom_models.register_model(model)
+            custom_models.create_model(model)
             self.workflow_models[self.id] = model
         return self.workflow_models[self.id]
+
+    def hasmodel(self):
+        from . import custom_models
+        return self.id in self.workflow_models or custom_models.has_table(self)
 
     def __str__(self):
         return "{} v{} (created {} by {})".format(
