@@ -52,7 +52,6 @@ if settings.DEBUG:
     urlpatterns.extend([
         # hack until production to host workflow
         path('editor/', EditorView.as_view(), name='editor'),
-        path('editor/<workflow_id>', EditorView.as_view(), name='editor-workflow'),
         path('editor/<path:path>', EditorView.as_view()),
     ])
 

@@ -26,6 +26,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authtoken.views import ObtainAuthToken
 from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
@@ -68,7 +69,6 @@ class RegisterView(LoginRequiredMixin, CreateView):
         user.save()
 
         return super(RegisterView, self).form_valid(form)
-
 
 @api_view(['POST'])
 def login_api(request):
@@ -441,6 +441,14 @@ def convertListToDict2(li):
 
 
 
+
+
+
+
+
+
+
+
 # Workflow related views
 
 class WorkflowsView(LoginRequiredMixin, TemplateView):
@@ -491,11 +499,12 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
             for entry in query:
                 versions.append(dict(
                     version = entry.version,
+                    preview = entry.preview,
                     created_by = entry.created_by,
                     time_created = entry.time_created,
-                    num_patients = 11,
+                    num_patients = 0 if not workflow.hasmodel() else workflow.datamodel().objects.all().count(),
                 ))
-            context['show_versions'] = True
+            context['specific_version'] = False
             context['versions'] = versions
         else:
             query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
@@ -503,7 +512,7 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
                 raise Http404("Workflow does not exist")
             workflow = query[0]
 
-            context['show_versions'] = False
+            context['specific_version'] = True
 
         patients = []
         if workflow.hasmodel():
@@ -550,18 +559,51 @@ class EditorView(LoginRequiredMixin, View):
 
 # API Views
 
-class AutoAuthenticated():
-    """
-    Allows access only to authenticated users.
-    """
+class LoginAPIView(ObtainAuthToken):
+    """ API to obtain a token by logging in """
+
+    def post(self, request, *args, **kwargs):
+        #serializer = AuthTokenSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+
+        token = Token.objects.get(user=user).key
+
+        study_id = Patient.objects.filter(clinician=user).values('study_id')
+        study_id = list(study_id)
+
+        if len(study_id) == 0:
+            st = 1
+        else:
+            li = []
+            for i in study_id:
+                if i['study_id'].startswith('AL'):
+                    last = i['study_id'][-2:]
+                    li.append(last)
+            st = int(max(li)) + 1
+
+        return Response({
+            'user_info': {
+                'code': user.code,
+                'healthy_facility': user.healthy_facility.code,
+                'study_id': st
+            },
+            'token': token
+        })
+
+class PostAuthenticator(permissions.IsAuthenticated):
+    """ Only authenticate for post requests """
 
     def has_permission(self, request, view):
-        return bool(True)
+        if True or request.method == 'GET':
+            return True
+        else:
+            return super(PostAuthenticator, self).has_permission(request, view)
 
 class WorkflowAPIView(APIView):
-    #authentication_classes = [authentication.TokenAuthentication]
-    #permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [AutoAuthenticated]
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [PostAuthenticator]
 
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     parser_classes = [rest_framework.parsers.JSONParser]
@@ -577,12 +619,12 @@ class WorkflowAPIView(APIView):
             query = Workflow.objects.filter(workflow_id=workflow_id, version=version, preview=preview)
 
         if query.count() == 0:
-            return Response("Invalid workflow id or version", status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
         else:
             json = query[0].json
             return HttpResponse(json, content_type="application/json")
 
-    def extract_schema(self, errors):
+    def extract_schema(self, workflow):
         default_types = {
             "TextInput": "default",
             "Counter": "numeric",
@@ -594,7 +636,7 @@ class WorkflowAPIView(APIView):
         }
         
         schema = []
-        for page in errors['pages']:
+        for page in workflow['pages']:
             for component in page['content']:
                 if 'valueID' in component:
                     type = component.get('type', default_types[component['component']])
@@ -636,7 +678,7 @@ class WorkflowAPIView(APIView):
             next_version = 1
         else:
             next_version = query.aggregate(models.Max("version"))["version__max"]
-            last_entry = Workflow.objects.get(version=next_version)
+            last_entry = query.get(version=next_version)
             if last_entry.preview:
                 last_entry.delete()
             else:
@@ -698,7 +740,7 @@ class SaveWorkflowPatientAPIView(APIView):
             if key in valid_keys:
                 data[key] = value
 
-        workflow.dataModel().objects.create(**data)
+        workflow.datamodel().objects.create(**data)
 
 
 

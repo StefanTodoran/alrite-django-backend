@@ -3,17 +3,21 @@
 <header>
   <h2>
     Workflow {{workflow.workflow_id}}
-    {% if not show_versions %}
+    {% if specific_version %}
     (version {{workflow.version}})
     {% endif %}
   </h2>
 </header>
 
 <section>
-  <a href="{% url 'editor-workflow' workflow_id=workflow.workflow_id %}">Open in editor</a>
+  {% if specific_version %}
+    <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}&version={{workflow.version}}">Open in editor</a>
+  {% else %}
+    <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}">Open in editor</a>
+  {% endif %}
 </section>
 
-{% if show_versions %}
+{% if not specific_version %}
 <section id="versions">
   <h3>Versions</h3>
 
@@ -29,7 +33,10 @@
       {% for wflow in versions %}
       <tr>
         <td>
-          <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=wflow.version %}">{{ wflow.version }}</a>
+          <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=wflow.version %}">{{ wflow.version}}</a>
+          {% if wflow.preview %}
+            (preview)
+          {% endif %}
         </td>
         <td>{{ wflow.created_by }}</td>
         <td>{{ wflow.time_created }}</td>
@@ -39,6 +46,12 @@
       {% endfor %}
     </tbody>
   </table>
+</section>
+{% endif %}
+
+{% if specific_version %}
+<section>
+  <!-- <h3>Data changes</h3> -->
 </section>
 {% endif %}
 
