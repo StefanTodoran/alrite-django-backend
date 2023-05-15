@@ -598,14 +598,14 @@ class LoginAPIView(ObtainAuthToken):
             'token': token
         })
 
-class PostAuthenticator(permissions.IsAuthenticated):
+class PostAuthenticator:
     """ Only authenticate for post requests """
-
     def has_permission(self, request, view):
-        if True or request.method == 'GET':
+        if request.method == 'GET':
             return True
-        else:
-            return super(PostAuthenticator, self).has_permission(request, view)
+        elif type(request.user) == CustomUser:
+            return request.user.is_admin
+        return False
 
 class WorkflowAPIView(APIView):
     authentication_classes = [authentication.TokenAuthentication]
