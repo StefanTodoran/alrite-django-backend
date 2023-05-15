@@ -8,6 +8,57 @@ needsValueID = [
   "Counter",
 ]
 
+requiredProps = { # commented out props are optional
+  "Paragraph": [
+    "text"
+  ],
+  "MediaItem": [
+    "fileName",
+    # "label"
+  ],
+  "MultipleChoice": [
+    "label",
+    "valueID",
+    "multiselect",
+  ],
+  "Choice": [
+    "text",
+    "value",
+    # "link",
+  ],
+  "TextInput": [
+    "label",
+    "type",
+    "valueID",
+    # "units",
+    # "defaultValue",
+  ],
+  "Button": [
+    "text",
+    # "hint",
+    "link",
+  ],
+  "Counter": [
+    "title",
+    # "hint",
+    "timeLimit",
+    "valueID",
+    "offerManualInput",
+  ],
+
+  "Comparison": [
+    "type",
+    "threshold",
+    "targetValueID",
+    "satisfiedLink",
+  ],
+  "Selection": [
+    "type",
+    "targetValueID",
+    "satisfiedLink",
+  ],
+}
+
 def missingErrorMessage(type: str, prop: str) -> str:
   if prop == "pageID" or prop == "valueID":
     return f"{type.capitalize()} is missing a unique identifier!"
@@ -70,11 +121,20 @@ def validatePageObj(originalPage, validatedPage, pageIDs: set, unusedPageIDs: se
 
   return valid
 
-def validateComponentObj(originalComponent, validatedComponent, valueIDs: set, unusedValueIDs: set):
+def validateComponentObj(originalPage, originalComponent, validatedComponent, valueIDs: set, unusedValueIDs: set):
   valid = True
 
   componentType = originalComponent["component"]
   valid = ensureUniqueID(componentType, originalComponent, validatedComponent, "valueID", unusedValueIDs, componentType in needsValueID) and valid
+
+  if "link" in originalComponent and originalComponent["link"] == originalPage["pageID"]:
+    validatedComponent["link"] = "Component should link to a different page!"
+    valid = False
+
+  for prop in requiredProps[componentType]:
+    if prop not in originalComponent:
+      validatedComponent[prop] = f"Component is missing {prop} property!"
+      valid = False
 
   return valid
 
@@ -149,7 +209,7 @@ def validateWorkflow(workflow):
       originalComponent = originalPage["content"][componentIndex]
       validatedComponent = validatedPage["content"][componentIndex]
 
-      valid = validateComponentObj(originalComponent, validatedComponent, valueIDs, unusedValueIDs) and valid
+      valid = validateComponentObj(originalPage, originalComponent, validatedComponent, valueIDs, unusedValueIDs) and valid
 
   return artifact, valid
 
