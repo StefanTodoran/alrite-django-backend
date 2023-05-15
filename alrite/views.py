@@ -2,6 +2,7 @@ import csv
 import datetime
 from datetime import timedelta, datetime, timezone
 import codecs
+import uuid
 
 from django.shortcuts import render
 from .serializers import *
@@ -463,12 +464,17 @@ class WorkflowsView(LoginRequiredMixin, TemplateView):
         workflows = {}
         for workflow in Workflow.objects.all():
             if workflow.workflow_id not in workflows or workflow.version > workflows[workflow.workflow_id]["version"]:
+
+                num_patients = 0 if not workflow.hasmodel() else workflow.datamodel().objects.all().count()
+                if workflow.workflow_id in workflows:
+                    num_patients += workflows[workflow.workflow_id]['num_patients']
+
                 workflows[workflow.workflow_id] = dict(
                     workflow_id = workflow.workflow_id,
                     version = workflow.version,
                     created_by = workflow.created_by,
                     time_created = workflow.time_created,
-                    num_patients = 11,
+                    num_patients = num_patients,
                 )
 
         context['workflows'] = list(workflows.values())
@@ -502,7 +508,7 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
                     preview = entry.preview,
                     created_by = entry.created_by,
                     time_created = entry.time_created,
-                    num_patients = 0 if not workflow.hasmodel() else workflow.datamodel().objects.all().count(),
+                    num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count(),
                 ))
             context['specific_version'] = False
             context['versions'] = versions
@@ -623,6 +629,12 @@ class WorkflowAPIView(APIView):
         else:
             json = query[0].json
             return HttpResponse(json, content_type="application/json")
+    
+    def type_to_column(self, typename):
+        if typename == "numeric":
+            return {"type": "IntegerField"}
+        else:
+            return {"type": "CharField", "params": {"max_length": 127}}
 
     def extract_schema(self, workflow):
         default_types = {
@@ -630,17 +642,13 @@ class WorkflowAPIView(APIView):
             "Counter": "numeric",
             "MultipleChoice": "default",
         }
-        mapping = {
-            "default": {"type": "CharField", "params": {"max_length": 127}},
-            "numeric": {"type": "IntegerField"},
-        }
         
         schema = []
         for page in workflow['pages']:
             for component in page['content']:
                 if 'valueID' in component:
-                    type = component.get('type', default_types[component['component']])
-                    column = mapping.get(type, mapping['default'])
+                    typename = component.get('type', default_types[component['component']])
+                    column = self.type_to_column(typename)
                     column['name'] = component['valueID']
 
                     if 'params' in component:
@@ -733,14 +741,17 @@ class SaveWorkflowPatientAPIView(APIView):
             return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
         workflow = query[0]
-        valid_keys = [field.name for field in workflow.schema]
+        valid_keys = [field['name'] for field in workflow.schema]
 
         data = {}
         for key, value in request.data.items():
             if key in valid_keys:
                 data[key] = value
 
-        workflow.datamodel().objects.create(**data)
+
+        workflow.datamodel().objects.create(patient_uuid=uuid.uuid4(), **data)
+
+        return Response({"data": "sumbittem"})
 
 
 

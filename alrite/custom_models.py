@@ -20,7 +20,7 @@ def schema_to_model(name, schema):
         #model_class = field_types[field_params['type']]
         attrs[field_params['name']] = model_class(**field_params.get('params', {}))
 
-    model = type(name, (models.Model,), attrs)
+    model = type(name, (AbstractPatient,), attrs)
     return model
 
 def workflow_to_model(entry):
