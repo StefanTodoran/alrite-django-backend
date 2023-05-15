@@ -57,6 +57,11 @@ requiredProps = { # commented out props are optional
     "targetValueID",
     "satisfiedLink",
   ],
+  "Validation": [
+    "type",
+    "threshold",
+    "targetValueID",
+  ],
 }
 
 def missingErrorMessage(type: str, prop: str) -> str:
@@ -160,7 +165,7 @@ def getAllIdentifiers(workflow, artifact):
       if "valueID" in component:
         valueIDs.add(component["valueID"])
       elif component["component"] in needsValueID:
-        workflow["content"][componentIndex]["valueID"] = missingErrorMessage("component", "valueID")
+        page["content"][componentIndex]["valueID"] = missingErrorMessage("component", "valueID")
   
   return pageIDs, valueIDs
 
