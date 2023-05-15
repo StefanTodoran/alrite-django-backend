@@ -633,14 +633,16 @@ class WorkflowAPIView(APIView):
     def type_to_column(self, typename):
         if typename == "numeric":
             return {"type": "IntegerField"}
+        elif typename in ['text', 'alphanumeric', 'any']:
+            return {"type": "CharField", "params": {"max_length": 127}}
         else:
             return {"type": "CharField", "params": {"max_length": 127}}
 
     def extract_schema(self, workflow):
         default_types = {
-            "TextInput": "default",
+            "TextInput": "text",
             "Counter": "numeric",
-            "MultipleChoice": "default",
+            "MultipleChoice": "text",
         }
         
         schema = []
