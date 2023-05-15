@@ -8,7 +8,7 @@ needsValueID = [
   "Counter",
 ]
 
-requiredProps = {
+requiredProps = { # commented out props are optional
   "Paragraph": [
     "text"
   ],
@@ -131,8 +131,10 @@ def validateComponentObj(originalPage, originalComponent, validatedComponent, va
     validatedComponent["link"] = "Component should link to a different page!"
     valid = False
 
-  # for prop in requiredProps[componentType]:
-    # print(componentType, prop, prop in originalComponent)
+  for prop in requiredProps[componentType]:
+    if prop not in originalComponent:
+      validatedComponent[prop] = f"Component is missing {prop} property!"
+      valid = False
 
   return valid
 
