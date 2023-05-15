@@ -88,7 +88,6 @@ class AbstractPatient(models.Model):
     clinician = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
     patient_uuid = models.UUIDField()
     app_version = models.IntegerField(default=1)
-    workflow_version = models.IntegerField(default=1)
     time_submitted = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
