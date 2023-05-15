@@ -716,6 +716,17 @@ class WorkflowAPIView(APIView):
         return Response(responseobj)
 
 
+class ValidationAPIView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def post(self, request):
+        errors_obj, valid = validation.validateWorkflow(request.data)
+        
+        if valid:
+            return Response(errors_obj)
+        else:
+            return Response(errors_obj, status=status.HTTP_400_BAD_REQUEST)
+
+
 class ListWorkflowsAPIView(APIView):
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def get(self, request):

@@ -44,6 +44,8 @@ urlpatterns = [
     path('apis/workflows/<workflow_id>/preview/', WorkflowAPIView.as_view(), {"preview": True}),
     path('apis/workflows/', ListWorkflowsAPIView.as_view()),
 
+    path('apis/validation/', ValidationAPIView.as_view()),
+
     path('apis/data/<workflow_id>/<version>/', SaveWorkflowPatientAPIView.as_view()),
 
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
