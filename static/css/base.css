@@ -1,7 +1,22 @@
-
 body {
     margin: 0;
     font-family: sans-serif;
+
+    --alrite-rgb: 111, 195, 135;
+    --alrite-green: #6FC387;
+  
+    --light-green: #E5F1E8;
+    --dark-green: #27442F;
+  
+    --light-border: #E2E2E2;
+    --dark-border: #909090;
+    --light-background: #FBFBFB;
+    --near-black: #262626;
+    --warning-orange: #ED6F2E;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
 }
 
 main, body > footer {
@@ -25,15 +40,6 @@ summary.header {
     margin-bottom: 10px;
 }
 
-.hidden {
-    display: none;
-}
-
-body > header {
-    padding: 5px;
-    border-bottom: 1px solid black;
-}
-
 nav {
     display: flex;
     align-items: center;
@@ -44,6 +50,21 @@ nav h1 {
     margin: 0;
 }
 
+a {
+    color: var(--alrite-green);
+    text-decoration: none;
+    transition: outline 0.1s ease;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.page-nav-item:hover {
+    outline: 3px solid var(--alrite-green);
+    border-radius: 5px;
+    text-decoration: none;
+}
 
 table {
     width: 100%;
@@ -56,3 +77,35 @@ th, td {
     border: 2px solid black;
 }
 
+#page-navigation {
+    background-color: var(--light-background);
+    border: 3px solid var(--light-border);
+    border-radius: 10px;
+    margin: 10px 10px;
+    padding: 10px 15px;
+    
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#page-navigation > span {
+    display: flex;
+    flex-direction: row;
+}
+
+.page-nav-item {
+    padding: 0.1em 0.25em;
+    margin-left: 0.5em;
+}
+
+.logo {
+    color: var(--alrite-green);
+    font-weight: 600;
+    font-size: 30px;
+    margin-left: 5px;
+}
+
+.hidden {
+    display: none;
+}

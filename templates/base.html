@@ -8,18 +8,27 @@
   <title>Alrite</title>
   <link rel="shortcut icon" href="{% static 'images/alrite_logo.png' %}" />
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap" rel="stylesheet">
 </head>
 <body>
   <header>
-    <nav>
-      <img src="{% static 'images/alrite_logo.png' %}" alt="" height="45px" width="45px">
-      <h1>{% block header %}Alrite{% endblock header %}</h1>
-      <a href="{% url 'dashboard' %}">Dashboard</a>
-      <a href="{% url 'editor' %}">Editor</a>
-      <a href="{% url 'workflows' %}">Workflows</a>
-      <a href="{% url 'clinicians' %}">Clinicians</a>
-      <a href="">Patients</a>
-      <a href="{% url 'logout' %}">Log out</a>
+    <nav id="page-navigation">
+      <span>
+        <img src="{% static 'images/alrite_logo.png' %}" alt="" height="45px" width="45px">
+        <h1 class="logo">{% block header %}ALRITE{% endblock header %}</h1>
+      </span>
+
+      <span>
+        <a class="page-nav-item" href="{% url 'dashboard' %}">Dashboard</a>
+        <a class="page-nav-item" href="{% url 'editor' %}">Editor</a>
+        <a class="page-nav-item" href="{% url 'workflows' %}">Workflows</a>
+        <a class="page-nav-item" href="{% url 'clinicians' %}">Clinicians</a>
+        <a class="page-nav-item" href="">Patients</a>
+        <a class="page-nav-item" href="{% url 'logout' %}">Log out</a>
+      </span>
     </nav>
   </header>
 
