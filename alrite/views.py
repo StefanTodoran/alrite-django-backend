@@ -601,6 +601,7 @@ class LoginAPIView(ObtainAuthToken):
 class PostAuthenticator:
     """ Only authenticate for post requests """
     def has_permission(self, request, view):
+        return True
         if request.method == 'GET':
             return True
         elif type(request.user) == CustomUser:
