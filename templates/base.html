@@ -24,7 +24,7 @@
       <span>
         <a class="page-nav-item" href="{% url 'dashboard' %}">Dashboard</a>
         <a class="page-nav-item" href="{% url 'editor' %}">Editor</a>
-        <a class="page-nav-item" href="{% url 'workflows' %}">Workflows</a>
+        <a class="page-nav-item {% block page-nav-workflows %}{% endblock page-nav-workflows %}" href="{% url 'workflows' %}">Workflows</a>
         <a class="page-nav-item" href="{% url 'clinicians' %}">Clinicians</a>
         <a class="page-nav-item" href="">Patients</a>
         <a class="page-nav-item" href="{% url 'logout' %}">Log out</a>

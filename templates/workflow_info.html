@@ -1,15 +1,18 @@
 {% extends 'base.html'%}
+
+{% block page-nav-workflows %}
+active
+{% endblock page-nav-workflows %}
+
 {% block content %}
-<header>
+<section>
   <h2>
-    Workflow {{workflow.workflow_id}}
+    Workflow: {{workflow.workflow_id}}
     {% if specific_version %}
     (version {{workflow.version}})
     {% endif %}
   </h2>
-</header>
-
-<section>
+  
   {% if specific_version %}
     <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}&version={{workflow.version}}">Open in editor</a>
   {% else %}

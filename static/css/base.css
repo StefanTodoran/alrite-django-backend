@@ -20,7 +20,7 @@ body {
 }
 
 main, body > footer {
-    margin: 8px;
+    margin: 32px 8px 8px;
 }
 
 section {
@@ -53,17 +53,10 @@ nav h1 {
 a {
     color: var(--alrite-green);
     text-decoration: none;
-    transition: outline 0.1s ease;
 }
 
 a:hover {
     text-decoration: underline;
-}
-
-.page-nav-item:hover {
-    outline: 3px solid var(--alrite-green);
-    border-radius: 5px;
-    text-decoration: none;
 }
 
 table {
@@ -97,6 +90,18 @@ th, td {
 .page-nav-item {
     padding: 0.1em 0.25em;
     margin-left: 0.5em;
+    border: 3px solid transparent;
+    transition: border 0.25s ease, border-radius 0.25s ease;
+}
+
+.page-nav-item.active {
+    border-bottom: 3px solid var(--alrite-green);
+}
+
+.page-nav-item:hover {
+    border: 3px solid var(--alrite-green);
+    text-decoration: none;
+    border-radius: 7.5px;
 }
 
 .logo {
@@ -104,6 +109,10 @@ th, td {
     font-weight: 600;
     font-size: 30px;
     margin-left: 5px;
+}
+
+.page-header {
+    color: var(--near-black);
 }
 
 .hidden {
