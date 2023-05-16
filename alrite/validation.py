@@ -78,7 +78,12 @@ def ensureUniqueID(type: str, original, validated, prop: str, IDs: set, required
     if value in IDs:
       IDs.discard(value)
       return True
+    # elif value == "":
+    #   validated[prop] = f"Duplicate {prop} detected!"
+    #   return False
     else:
+      print(prop, value)
+      print(original)
       validated[prop] = f"Duplicate {prop} detected!"
       return False
   elif required:
@@ -102,6 +107,9 @@ def isValidID(type: str, original, validated, prop: str, IDs: set, required: boo
     return False
   else:
     return True
+
+def hasValidPropertyValue(component, prop, valid):
+  return prop in component and component[prop] in valid
 
 # =========================== #
 # PAGE & COMPONENT VALIDATION #
@@ -136,6 +144,15 @@ def validateComponentObj(originalPage, originalComponent, validatedComponent, va
     validatedComponent["link"] = "Component should link to a different page!"
     valid = False
 
+  if componentType == "TextInput" and not hasValidPropertyValue(originalComponent, "type", ["numeric", "alphanumeric", "text", "any"]):
+    validatedComponent["type"] = f"Invalid input type provided."
+
+  if componentType in ["Comparison", "Validation"] and not hasValidPropertyValue(originalComponent, "type", [">", "<", ">=", "<=", "="]):
+    validatedComponent["type"] = f"Invalid comparison type provided."
+
+  if componentType == "Selection" and not hasValidPropertyValue(originalComponent, "type", ["all_selected", "at_least_one", "exactly_one", "none_selected"]):
+    validatedComponent["type"] = f"Invalid selection type provided."
+
   for prop in requiredProps[componentType]:
     if prop not in originalComponent:
       validatedComponent[prop] = f"Component is missing {prop} property!"
@@ -153,11 +170,12 @@ def getAllIdentifiers(workflow, artifact):
   
   for pageIndex in range(len(workflow["pages"])):
     page = workflow["pages"][pageIndex]
+    validatedPage = artifact["pages"][pageIndex]
 
     if "pageID" in page:
       pageIDs.add(page["pageID"])
     else:
-      artifact["pageID"] = missingErrorMessage("page", "pageID")
+      validatedPage["pageID"] = missingErrorMessage("page", "pageID")
     
     for componentIndex in range(len(page["content"])):
       component = page["content"][componentIndex]
@@ -165,7 +183,7 @@ def getAllIdentifiers(workflow, artifact):
       if "valueID" in component:
         valueIDs.add(component["valueID"])
       elif component["component"] in needsValueID:
-        page["content"][componentIndex]["valueID"] = missingErrorMessage("component", "valueID")
+        validatedPage["content"][componentIndex]["valueID"] = missingErrorMessage("component", "valueID")
   
   return pageIDs, valueIDs
 
@@ -197,7 +215,7 @@ def deepCopyWorkflowStructure(workflow):
 def validateWorkflow(workflow):
   artifact = deepCopyWorkflowStructure(workflow)
   
-  pageIDs, valueIDs = getAllIdentifiers(workflow, True)
+  pageIDs, valueIDs = getAllIdentifiers(workflow, artifact)
 
   unusedPageIDs = copy.copy(pageIDs)
   unusedValueIDs = copy.copy(valueIDs)
