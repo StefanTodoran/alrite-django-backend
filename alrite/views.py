@@ -73,6 +73,7 @@ class RegisterView(LoginRequiredMixin, CreateView):
 
 @api_view(['POST'])
 def login_api(request):
+    print (request.user)
     serializer = AuthTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
@@ -565,14 +566,18 @@ class EditorView(LoginRequiredMixin, View):
 
 # API Views
 
-class LoginAPIView(ObtainAuthToken):
+class LoginAPIView(APIView):
     """ API to obtain a token by logging in """
 
     def post(self, request, *args, **kwargs):
-        #serializer = AuthTokenSerializer(data=request.data)
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
+        
+        if not request.user.is_anonymous and type(request.user) == CustomUser:
+            user = request.user
+        else:
+            serializer = AuthTokenSerializer(data=request.data)
+            #serializer = self.serializer_class(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
 
         token = Token.objects.get(user=user).key
 
@@ -609,7 +614,7 @@ class PostAuthenticator:
         return False
 
 class WorkflowAPIView(APIView):
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
     permission_classes = [PostAuthenticator]
 
     renderer_classes = [rest_framework.renderers.JSONRenderer]
@@ -747,6 +752,7 @@ class ListWorkflowsAPIView(APIView):
         return Response(result)
 
 class SaveWorkflowPatientAPIView(APIView):
+    authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def post(self, request, workflow_id, version):
         """ POST endpoint to upload patient data collected by a workflow """
