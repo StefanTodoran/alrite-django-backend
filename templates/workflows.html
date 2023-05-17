@@ -1,10 +1,17 @@
 {% extends 'base.html'%}
-{% block content %}
-<header>
-  <h2>Workflows</h2>
-</header>
 
-<section id="workflow-table">
+{% block page-nav-workflows %}
+active
+{% endblock page-nav-workflows %}
+
+{% block content %}
+<section>
+  <h2 class="page-title">
+    All Workflows
+  </h2>
+</section>
+
+<section class="card" id="workflow-table">
   <table>
     <thead> <tr>
       <th scope="col">Workflow ID</th>

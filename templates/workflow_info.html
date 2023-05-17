@@ -1,26 +1,31 @@
 {% extends 'base.html'%}
+
+{% block page-nav-workflows %}
+active
+{% endblock page-nav-workflows %}
+
 {% block content %}
-<header>
-  <h2>
-    Workflow {{workflow.workflow_id}}
+<section>
+  <h2 class="page-title" style="margin-bottom: 0;">
+    Workflow: {{workflow.workflow_id}}
     {% if specific_version %}
     (version {{workflow.version}})
     {% endif %}
   </h2>
-</header>
-
-<section>
+  
   {% if specific_version %}
     <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}&version={{workflow.version}}">Open in editor</a>
   {% else %}
     <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}">Open in editor</a>
   {% endif %}
+
+  {% if not specific_version %}
+  <h3>Versions</h3>
+  {% endif %}
 </section>
 
 {% if not specific_version %}
-<section id="versions">
-  <h3>Versions</h3>
-
+<section class="card" id="versions">
   <table>
     <thead> <tr>
       <th scope="col">Version</th>
@@ -41,7 +46,7 @@
         <td>{{ wflow.created_by }}</td>
         <td>{{ wflow.time_created }}</td>
         <td>{{ wflow.num_patients }}</td>
-        <td> <a href="">View</a> </td>
+        <!-- <td> <a href="">View</a> </td> -->
       </tr>
       {% endfor %}
     </tbody>
@@ -56,8 +61,10 @@
 {% endif %}
 
 <section>
-  <h3>Collected data</h3>
+  <h3>Collected Data</h3>
+</section>
 
+<section class="card">
   <table>
     <thead> <tr>
       <th scope="col">Workflow version</th>
