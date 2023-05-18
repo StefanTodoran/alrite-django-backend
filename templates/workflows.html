@@ -1,0 +1,45 @@
+{% extends 'base.html'%}
+
+{% block page-nav-workflows %}
+active
+{% endblock page-nav-workflows %}
+
+{% block content %}
+<section>
+  <h2 class="page-title">
+    All Workflows
+  </h2>
+</section>
+
+<section class="card" id="workflow-table">
+  <table>
+    <thead> <tr>
+      <th scope="col">Workflow ID</th>
+      <th scope="col">Current version</th>
+      <th scope="col">Created by</th>
+      <th scope="col">Time created</th>
+      <th scope="col">Number of Patients</th>
+    </tr> </thead>
+
+    {% for workflow in workflows %}
+    <tbody>
+      <tr>
+        <td>
+          <details ontoggle="">
+            <summary>
+              <a href="{% url 'workflow-info' workflow_id=workflow.workflow_id %}">{{ workflow.workflow_id }}</a>
+            </summary>
+          </details>
+        </td>
+        <td>{{ workflow.version }}</td>
+        <td>{{ workflow.created_by }}</td>
+        <td>{{ workflow.time_created }}</td>
+        <td>{{ workflow.num_patients }}</td>
+      </tr>
+    </tbody>
+
+    {% endfor %}
+
+  </table>
+</section>
+{% endblock content %}

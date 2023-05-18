@@ -9,6 +9,8 @@ from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 # new changes
+
+
 class Health_Facility(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=255, blank=True, null=True)
@@ -32,6 +34,68 @@ class CustomUser(AbstractUser):
         # return f'{self.first_name} {self.last_name}'
         return self.username
 
+class Workflow(models.Model):
+    """
+    Model that stores a workflow in JSON format, as well
+    as attributes about the workflow
+    Workflows are meant to be readonly and not modified, the purpose
+    of the version field is to allow for modifications to
+    be made without losing the previous workflow and data schema
+    """
+    # Identifier for this workflow, should be a short string without spaces or capitals
+    workflow_id = models.CharField(max_length=63)
+    version = models.IntegerField(default=1)
+    # Whether the workflow is a preview (prerelease)
+    # preview versions are meant to be temporary and are overwritten by the next
+    # uploaded workflow
+    preview = models.BooleanField(default=False)
+    time_created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL, db_index=False)
+    # Using TextField instead of JSONField because we don't need to parse the
+    # JSON on the server, were just gonna send it back to clients.
+    json = models.TextField()
+    # Stores the names and data types of the data that will be
+    # collected by the workflow, used to create the database
+    # format is [{"name": "...", "type": "..."}, ...], more information is in custom_models.py
+    schema = models.JSONField()
+
+    
+    workflow_models = {}
+
+    def datamodel(self):
+        if self.id not in self.workflow_models:
+            print ("registering model")
+            from . import custom_models
+            model = custom_models.workflow_to_model(self)
+            custom_models.register_model(model)
+            custom_models.create_model(model)
+            self.workflow_models[self.id] = model
+        return self.workflow_models[self.id]
+
+    def hasmodel(self):
+        from . import custom_models
+        return self.id in self.workflow_models or custom_models.has_table(self)
+
+    def __str__(self):
+        return "{} v{} (created {} by {})".format(
+            self.workflow_id, self.version, self.time_created, self.created_by)
+
+class AbstractPatient(models.Model):
+    """
+    Abstract class that contains the default values recorded for all patients,
+    regardless of workflow
+    """
+    clinician = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
+    patient_uuid = models.UUIDField()
+    app_version = models.IntegerField(default=1)
+    time_submitted = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "Patient {} (Collected {} by {}, workflow {} v{})".format(
+            self.patient_uuid, self.time_submitted, self.clinician, self.workflow_id, self.workflow_version)
+
+    class Meta:
+        abstract = True
 
 class Counter(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
@@ -125,3 +189,4 @@ class Patient(models.Model):
 def create_auth_token(sender, instance=None, created=False,  **kwargs):
     if created:
         Token.objects.create(user=instance)
+

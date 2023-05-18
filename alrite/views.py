@@ -1,17 +1,23 @@
 import csv
 import datetime
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
+import codecs
+import uuid
 
 from django.shortcuts import render
 from .serializers import *
 from .models import *
 from .forms import *
 from django.shortcuts import render
+from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, FormView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.hashers import make_password
+from django.http import Http404
+from django.contrib import staticfiles
+import rest_framework
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView, ListAPIView
 from rest_framework.decorators import api_view, permission_classes
@@ -21,6 +27,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authtoken.views import ObtainAuthToken
 from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
@@ -28,6 +35,7 @@ from bs4 import BeautifulSoup as bs
 from django.db.models import F, Count
 from django.db.models import Sum
 
+from . import validation
 
 # Create your views here.
 class RegisterView(LoginRequiredMixin, CreateView):
@@ -63,7 +71,6 @@ class RegisterView(LoginRequiredMixin, CreateView):
 
         return super(RegisterView, self).form_valid(form)
 
-
 @api_view(['POST'])
 def login_api(request):
     serializer = AuthTokenSerializer(data=request.data)
@@ -94,6 +101,7 @@ def login_api(request):
     })
 
 
+
 class HomePageView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
@@ -103,7 +111,6 @@ class HomePageView(LoginRequiredMixin, TemplateView):
         my_list = patients_data("none", "none", 20)
 
         context = super(HomePageView, self).get_context_data(**kwargs)
-
         context.update({
             "data": my_list
         })
@@ -356,7 +363,6 @@ class SaveCountDataView(APIView):
 
         return Response("Data saved successfully")
 
-
 def export_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename=Alrite_Dataset_' + str(datetime.now()) + '.csv'
@@ -378,7 +384,7 @@ def export_csv(request):
     patients = Patient.objects.all()
 
     for patient in patients:
-        writer.writerow([patient.app_version, 'AL' + patient.clinician.healthy_facility.code + patient.clinician.code,
+        writer.writerow([patient.app_version, 'AL{}{}'.format(patient.clinician.healthy_facility.code, patient.clinician.code),
                          patient.end_date, patient.study_id, patient.age, patient.gender,
                          patient.weight, patient.muac, patient.symptoms, patient.difficulty_breathing,
                          patient.days_with_breathing_difficulties,
@@ -403,6 +409,9 @@ def export_csv(request):
 
     return response
 
+class ExportCSVView(LoginRequiredMixin, View):
+    def get(self, request):
+        return export_csv(request)
 
 def get_weekly_data():
     # week_start = datetime.now()
@@ -430,3 +439,333 @@ def convertListToDict2(li):
 
     # dic = dict(sorted(dic.items(), key=lambda x: x[1], reverse=True))
     return dic
+
+
+
+
+
+
+
+
+
+
+
+# Workflow related views
+
+class WorkflowsView(LoginRequiredMixin, TemplateView):
+    """
+    View that displays a table of all the workflows and relevant stats about them.
+    Links to workflow info pages for each of them.
+    """
+    template_name = 'workflows.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(WorkflowsView, self).get_context_data(**kwargs)
+        workflows = {}
+        for workflow in Workflow.objects.all():
+            if workflow.workflow_id not in workflows or workflow.version > workflows[workflow.workflow_id]["version"]:
+
+                num_patients = 0 if not workflow.hasmodel() else workflow.datamodel().objects.all().count()
+                if workflow.workflow_id in workflows:
+                    num_patients += workflows[workflow.workflow_id]['num_patients']
+
+                workflows[workflow.workflow_id] = dict(
+                    workflow_id = workflow.workflow_id,
+                    version = workflow.version,
+                    created_by = workflow.created_by,
+                    time_created = workflow.time_created,
+                    num_patients = num_patients,
+                )
+
+        context['workflows'] = list(workflows.values())
+        print (context)
+
+        return context
+
+class WorkflowInfoView(LoginRequiredMixin, TemplateView):
+    """
+    View that displays specific info about a workflow, including
+    the previous versions of it, the patient data collected by it,
+    and links to edit or delete it.
+    """
+    template_name = 'workflow_info.html'
+
+    def get_context_data(self, workflow_id, version=None, **kwargs):
+        context = super(WorkflowInfoView, self).get_context_data(**kwargs)
+
+        if version is None:
+            versions = []
+            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+            if query.count() == 0:
+                raise Http404("Workflow does not exist")
+
+            workflow = query[0]
+
+            versions = []
+            for entry in query:
+                versions.append(dict(
+                    version = entry.version,
+                    preview = entry.preview,
+                    created_by = entry.created_by,
+                    time_created = entry.time_created,
+                    num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count(),
+                ))
+            context['specific_version'] = False
+            context['versions'] = versions
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+            if query.count() == 0:
+                raise Http404("Workflow does not exist")
+            workflow = query[0]
+
+            context['specific_version'] = True
+
+        patients = []
+        if workflow.hasmodel():
+            for patient in workflow.datamodel().objects.all()[:50]:
+                values = []
+                for col in workflow.schema:
+                    values.append(getattr(patient, col['name']))
+                patients.append(dict(
+                    workflow_version = patient.workflow_version,
+                    clinician = patient.clinician,
+                    time_submitted = patient.time_submitted,
+                    values = values,
+                ))
+        context['patients'] = patients
+
+        column_titles = []
+        for col in workflow.schema:
+            column_titles.append(col['name'].replace('-', ' ').replace('_', ' ').capitalize())
+        context['column_titles'] = column_titles
+
+        context['workflow'] = dict(
+            workflow_id = workflow.workflow_id,
+            version = workflow.version,
+        )
+
+        return context
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    """ View that summarizes important info about workflows
+    and the data collected, meant to be the landing
+    page for the backend """
+    template_name = 'dashboard.html'
+
+
+class EditorView(LoginRequiredMixin, View):
+    """ View for development that hosts the workflow
+    editor at a url (this will be done by the webserver
+    once deployed) """
+    def get(self, request, workflow_id=None, path="index.html"):
+        return staticfiles.views.serve(request, "alrite-workflow-editor/" + path)
+
+
+
+# API Views
+
+class LoginAPIView(ObtainAuthToken):
+    """ API to obtain a token by logging in """
+
+    def post(self, request, *args, **kwargs):
+        #serializer = AuthTokenSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+
+        token = Token.objects.get(user=user).key
+
+        study_id = Patient.objects.filter(clinician=user).values('study_id')
+        study_id = list(study_id)
+
+        if len(study_id) == 0:
+            st = 1
+        else:
+            li = []
+            for i in study_id:
+                if i['study_id'].startswith('AL'):
+                    last = i['study_id'][-2:]
+                    li.append(last)
+            st = int(max(li)) + 1
+
+        return Response({
+            'user_info': {
+                'code': user.code,
+                'healthy_facility': user.healthy_facility.code,
+                'study_id': st
+            },
+            'token': token
+        })
+
+class PostAuthenticator:
+    """ Only authenticate for post requests """
+    def has_permission(self, request, view):
+        return True
+        if request.method == 'GET':
+            return True
+        elif type(request.user) == CustomUser:
+            return request.user.is_admin
+        return False
+
+class WorkflowAPIView(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [PostAuthenticator]
+
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    parser_classes = [rest_framework.parsers.JSONParser]
+
+    def get(self, request, workflow_id, version=None, preview=False):
+        """ GET endpoint to retrieve a workflow
+        tries to find a workflow with the given id and version (defaults to most recent)
+        If found, the json of the workflow is returned, and if not found a 404 error is
+        returned """
+        if version is None:
+            query = Workflow.objects.filter(workflow_id=workflow_id, preview=preview).order_by('-version')
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id, version=version, preview=preview)
+
+        if query.count() == 0:
+            return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            json = query[0].json
+            return HttpResponse(json, content_type="application/json")
+    
+    def type_to_column(self, typename):
+        if typename == "numeric":
+            return {"type": "IntegerField"}
+        elif typename in ['text', 'alphanumeric', 'any']:
+            return {"type": "CharField", "params": {"max_length": 127}}
+        else:
+            return {"type": "CharField", "params": {"max_length": 127}}
+
+    def extract_schema(self, workflow):
+        default_types = {
+            "TextInput": "text",
+            "Counter": "numeric",
+            "MultipleChoice": "text",
+        }
+        
+        schema = []
+        for page in workflow['pages']:
+            for component in page['content']:
+                if 'valueID' in component:
+                    typename = component.get('type', default_types[component['component']])
+                    column = self.type_to_column(typename)
+                    column['name'] = component['valueID']
+
+                    if 'params' in component:
+                        if 'params' in column:
+                            column['params'].update(component['params'])
+                        else:
+                            column['params'] = component['params']
+
+                    schema.append(column)
+
+        return schema
+
+    def post(self, request, workflow_id, version=None, preview=False):
+        """ POST endpoint to save a workflow
+        Expects the body of the post request to be the json of the workflow
+        Saves the workflow with the given workflow_id, creating a new version if
+        the workflow already exists
+        Returns a json object with parameters of the created workflow, including the
+        version, api path, time created and author
+        If invalid json is passed in a 400 error is returned """
+
+        if version is not None:
+            return Response("Modifying versions of workflows is not supported",
+                    status=status.HTTP_400_BAD_REQUEST)
+
+        jsonobj = request.data
+        errors_obj, valid = validation.validateWorkflow(jsonobj)
+        schema = self.extract_schema(jsonobj)
+
+        if not valid:
+            return Response(errors_obj, status=status.HTTP_400_BAD_REQUEST)
+
+        query = Workflow.objects.filter(workflow_id=workflow_id)
+        if query.count() == 0:
+            next_version = 1
+        else:
+            next_version = query.aggregate(models.Max("version"))["version__max"]
+            last_entry = query.get(version=next_version)
+            if last_entry.preview:
+                last_entry.delete()
+            else:
+                next_version += 1
+
+        time_created = datetime.now(timezone.utc)
+        user = None
+
+        responseobj = dict(
+            version = next_version,
+            apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, "preview" if preview else next_version),
+            time_created = str(time_created),
+            created_by = user,
+        )
+        jsonobj['meta'] = responseobj
+        jsontxt = json.dumps(jsonobj)
+
+        Workflow.objects.create(
+            workflow_id = workflow_id,
+            version = next_version,
+            preview = preview,
+            time_created = time_created,
+            created_by = user,
+            json = jsontxt,
+            schema = schema,
+        )
+        return Response(responseobj)
+
+
+class ValidationAPIView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def post(self, request):
+        errors_obj, valid = validation.validateWorkflow(request.data)
+        
+        if valid:
+            return Response(errors_obj)
+        else:
+            return Response(errors_obj, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListWorkflowsAPIView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def get(self, request):
+        """ GET endpoint that returns a json list of all the workflows with
+        the id, version, creation time and author. """
+        result = []
+        for entry in Workflow.objects.all():
+            result.append(dict(
+                workflow_id = entry.workflow_id,
+                version = entry.version,
+                preview = entry.preview,
+                time_created = entry.time_created,
+                created_by = None if entry.created_by is None else entry.created_by.get_username(),
+            ))
+        return Response(result)
+
+class SaveWorkflowPatientAPIView(APIView):
+    renderer_classes = [rest_framework.renderers.JSONRenderer]
+    def post(self, request, workflow_id, version):
+        """ POST endpoint to upload patient data collected by a workflow """
+        query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
+        if query.count() == 0:
+            return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        workflow = query[0]
+        valid_keys = [field['name'] for field in workflow.schema]
+
+        data = {}
+        for key, value in request.data.items():
+            if key in valid_keys:
+                data[key] = value
+
+
+        workflow.datamodel().objects.create(patient_uuid=uuid.uuid4(), **data)
+
+        return Response({"data": "sumbittem"})
+
+
+
