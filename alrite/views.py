@@ -678,7 +678,10 @@ class WorkflowAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST)
 
         jsonobj = request.data
-        errors_obj, valid = validation.validateWorkflow(jsonobj)
+        try:
+            errors_obj, valid = validation.validateWorkflow(jsonobj)
+        except:
+            print("An exception occurred during validation!") 
         schema = self.extract_schema(jsonobj)
 
         if not valid:

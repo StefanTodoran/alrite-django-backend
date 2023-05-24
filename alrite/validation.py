@@ -64,177 +64,309 @@ requiredProps = { # commented out props are optional
   ],
 }
 
-def missingErrorMessage(type: str, prop: str) -> str:
+# ================ #
+# HELPER FUNCTIONS #
+# ================ #
+
+def missingErrorMessage(prop: str, type: str = None) -> str:
   if prop == "pageID" or prop == "valueID":
-    return f"{type.capitalize()} is missing a unique identifier!"
-  else:
-    return f"{type.capitalize()} requires {prop} property!"
-
-# Verifies that the given ID property is unique given a set
-# of possible ID values. Beware: modifies the provided set!
-def ensureUniqueID(type: str, original, validated, prop: str, IDs: set, required: bool):
-  if prop in original:
-    value = original[prop]
-    if value in IDs:
-      IDs.discard(value)
-      return True
-    # elif value == "":
-    #   validated[prop] = f"Duplicate {prop} detected!"
-    #   return False
+    if type is None:
+      return f"A unique identifier is required!"
     else:
-      print(prop, value)
-      print(original)
-      validated[prop] = f"Duplicate {prop} detected!"
-      return False
-  elif required:
-    validated[prop] = missingErrorMessage(type, prop)
-    return False
+      return f"{type.capitalize()} is missing a unique identifier!"
   else:
-    return True
-
-# Verifies the the property on the given object is an actual
-# identifier in use somewhere. Supports optional properties.
-def isValidID(type: str, original, validated, prop: str, IDs: set, required: bool):
-  if prop in original:
-    value = original[prop]
-    if value in IDs:
-      return True
+    if type is None:
+      return f"The {prop} property is required!"
     else:
-      validated[prop] = f"Provided {prop} is not used by any page/component."
-      return False
-  elif required:
-    validated[prop] = missingErrorMessage(type, prop)
-    return False
-  else:
-    return True
+      return f"{type.capitalize()} requires {prop} property!"
 
 def hasValidPropertyValue(component, prop, valid):
   return prop in component and component[prop] in valid
 
-# =========================== #
-# PAGE & COMPONENT VALIDATION #
+# ================ #
+# WORKFLOW CLASSES #
+# ================ #
 
-def validatePageObj(originalPage, validatedPage, pageIDs: set, unusedPageIDs: set):
-  valid = True
+# ---- #
+# PAGE #
+class PageEncoder(json.JSONEncoder):
+  def default(self, obj):
+    return obj.__dict__ 
 
-  valid = ensureUniqueID("page", originalPage, validatedPage, "pageID", unusedPageIDs, True) and valid
-  valid = isValidID("page", originalPage, validatedPage, "defaultLink", pageIDs, True) and valid
+class Page():
+  def __init__(self, pageID, defaultLink: str = None, isDiagnosisPage: bool = None, content: list = None):
+    self.pageID = pageID
+    self.defaultLink = defaultLink
+    self.isDiagnosisPage = isDiagnosisPage
+    self.content = content or []
 
-  if originalPage["defaultLink"] == originalPage["pageID"]:
-    validatedPage["defaultLink"] = "Page should not link to itself!"
-    valid = False
+    # Pages can have error information that isn't specific to a prop (unused page)
+    # or we can't store in the prop (pageID) so we use this instead.
+    self.pageError = None
   
-  if "title" not in originalPage:
-    validatedPage["title"] = missingErrorMessage("page", "title")
-    valid = False
-  
-  if "content" not in originalPage:
-    validatedPage["content"] = missingErrorMessage("page", "content")
-    valid = False
+  def __str__(self):
+    return json.dumps(self.__dict__, ensure_ascii=False)
 
-  return valid
+  def appendComponent(self, component: dict):
+    self.content.append(component)
+# PAGE #
+# ---- #
 
-def validateComponentObj(originalPage, originalComponent, validatedComponent, valueIDs: set, unusedValueIDs: set):
-  valid = True
-
-  componentType = originalComponent["component"]
-  valid = ensureUniqueID(componentType, originalComponent, validatedComponent, "valueID", unusedValueIDs, componentType in needsValueID) and valid
-
-  if "link" in originalComponent and originalComponent["link"] == originalPage["pageID"]:
-    validatedComponent["link"] = "Component should link to a different page!"
-    valid = False
-
-  if componentType == "TextInput" and not hasValidPropertyValue(originalComponent, "type", ["numeric", "alphanumeric", "text", "any"]):
-    validatedComponent["type"] = f"Invalid input type provided."
-
-  if componentType in ["Comparison", "Validation"] and not hasValidPropertyValue(originalComponent, "type", [">", "<", ">=", "<=", "="]):
-    validatedComponent["type"] = f"Invalid comparison type provided."
-
-  if componentType == "Selection" and not hasValidPropertyValue(originalComponent, "type", ["all_selected", "at_least_one", "exactly_one", "none_selected"]):
-    validatedComponent["type"] = f"Invalid selection type provided."
-
-  for prop in requiredProps[componentType]:
-    if prop not in originalComponent:
-      validatedComponent[prop] = f"Component is missing {prop} property!"
-      valid = False
-
-  return valid
-
-# Takes a workflow object and returns a tuple with two contents.
-# The first is a set of all page IDs and the second a set of all
-# value IDs. Also takes an optional artifact parameter, this is an
-# object which stores validation errors. 
-def getAllIdentifiers(workflow, artifact):
-  pageIDs = set()
-  valueIDs = set()
-  
-  for pageIndex in range(len(workflow["pages"])):
-    page = workflow["pages"][pageIndex]
-    validatedPage = artifact["pages"][pageIndex]
-
-    if "pageID" in page:
-      pageIDs.add(page["pageID"])
-    else:
-      validatedPage["pageID"] = missingErrorMessage("page", "pageID")
+class Workflow:
+  def __init__(self, workflow):
+    self.name = workflow["name"]
+    self.rawWorkflow = workflow
     
-    for componentIndex in range(len(page["content"])):
-      component = page["content"][componentIndex]
+    self.valid = True
+    self.artifact = WorkflowArtifact(workflow)
+    
+    self.pages = self._extractPageData()  
+    self.indexMap = self._createPageIdentifierMap()
 
-      if "valueID" in component:
-        valueIDs.add(component["valueID"])
-      elif component["component"] in needsValueID:
-        validatedPage["content"][componentIndex]["valueID"] = missingErrorMessage("component", "valueID")
+    self.pageIDs, self.valueIDs = self._getAllIdentifiers()
+
+  def __iter__(self):
+    return WorkflowIter(self.pages)
+
+  # ================= #
+  # PARSING FUNCTIONS #
+  # ================= #
+
+  def _extractPageData(self):
+    pages = []
+
+    for pageIndex in range(len(self.rawWorkflow["pages"])):
+      rawPage = self.rawWorkflow["pages"][pageIndex]
+      pages.append(Page(
+        rawPage["pageID"],
+        rawPage["defaultLink"],
+        rawPage["isDiagnosisPage"],
+        rawPage["content"],
+      ))
+    
+    return pages
+
+  # Returns a map which provides pageID -> pageIndex.
+  def _createPageIdentifierMap(self):
+    map = {}
+    for pageIndex in range(len(self.pages)):
+      map[self.pages[pageIndex].pageID] = pageIndex
+    return map
   
-  return pageIDs, valueIDs
+  def _getAllIdentifiers(self):
+    pageIDs = set()
+    valueIDs = set()
+    
+    for wPage in self.pages:
+      aPage = self.getArtifactPage(wPage.pageID)
+      pageIDs.add(wPage.pageID)
 
-def deepCopyWorkflowStructure(workflow):
-  artifact = {
-    "pages": [],
-  }
+      for componentIndex in range(len(wPage.content)):
+        component = wPage.content[componentIndex]
+
+        if "valueID" in component:
+          valueIDs.add(component["valueID"])
+        elif component["component"] in needsValueID:
+          aPage.content[componentIndex]["valueID"] = missingErrorMessage("valueID", "component")
+    
+    return pageIDs, valueIDs
+
+  # ================ #
+  # HELPER FUNCTIONS #
+  # ================ #
+
+  # Returns the target page, which may be a 
+  # pageID string or an integer page index.
+  def getPage(self, target) -> Page:
+    if isinstance(target, str):
+      pageIndex = self.indexMap[target]
+    elif isinstance(target, int):
+      pageIndex = target
+    return self.pages[pageIndex]
   
-  for pageIndex in range(len(workflow["pages"])):
-    originalPage = workflow["pages"][pageIndex]
+  def getArtifactPage(self, target) -> Page:
+    if isinstance(target, str):
+      pageIndex = self.indexMap[target]
+    elif isinstance(target, int):
+      pageIndex = target
+    return self.artifact.pages[pageIndex]
+  
+  # ==================== #
+  # VALIDATION FUNCTIONS #
+  # ==================== #
 
-    artifact["pages"].append({
-      "pageID": originalPage["pageID"],
-      "content": [],
-    })
-    validatedPage = artifact["pages"][pageIndex]
+  def validate(self):
+    self.valid = True
+    unusedPageIDs, unusedValueIDs = copy.copy(self.pageIDs), copy.copy(self.valueIDs)
 
-    for componentIndex in range(len(originalPage["content"])):
-      originalComponent = originalPage["content"][componentIndex]
+    for wPage in self.pages:
+      self.validatePageObj(wPage.pageID, unusedPageIDs)
 
-      validatedPage["content"].append({
-        "component": originalComponent["component"]
-      })
+      for componentIndex in range(len(wPage.content)):
+        self.validateComponentObj(wPage.pageID, componentIndex, unusedValueIDs)
 
-  return artifact
+    self.searchForUnusedAndLoops()
+    return self.valid
+  
+  def validatePageObj(self, target, unusedPageIDs: set):
+    originalPage = self.getPage(target)
+    artifactPage = self.getArtifactPage(target)
+
+    self.valid = self.valid and self.ensureUniquePageID(originalPage, artifactPage, unusedPageIDs)
+    self.valid = self.valid and self.isValidID(originalPage, artifactPage, "defaultLink", True)
+
+    if originalPage.defaultLink == originalPage.pageID:
+      artifactPage.defaultLink = "Page should not link to itself!"
+      self.valid = False
+
+  # Verifies that the given ID property is unique given a set
+  # of possible ID values. Beware: modifies the provided set!
+  def ensureUniquePageID(self, originalPage, artifactPage, unusedIDs: set):
+    if originalPage.pageID in unusedIDs:
+      unusedIDs.discard(originalPage.pageID)
+      return True
+    else:
+      # We don't store this in the pageID since the front end uses
+      # IDs to distinguish pages, so the artifact should not modify IDs.
+      artifactPage.pageError = f"Duplicate pageID detected!"
+      return False
+    
+  def validateComponentObj(self, targetPage, componentIndex, unusedValueIDs: set):
+    originalPage = self.getPage(targetPage)
+    artifactPage = self.getArtifactPage(targetPage)
+
+    originalComponent = originalPage.content[componentIndex]
+    artifactComponent = artifactPage.content[componentIndex]
+    componentType = originalComponent["component"]
+
+    isUnique, errorMessage = self.ensureUniqueID(componentType, originalComponent, "valueID", unusedValueIDs, componentType in needsValueID)
+    if not isUnique:
+      self.valid = False
+      artifactComponent["valueID"] = errorMessage
+
+    if "link" in originalComponent and originalComponent["link"] == originalPage.pageID:
+      artifactComponent["link"] = "Component should link to a different page!"
+      self.valid = False
+
+    if componentType == "TextInput" and not hasValidPropertyValue(originalComponent, "type", ["numeric", "alphanumeric", "text", "any"]):
+      artifactComponent["type"] = f"Invalid input type provided."
+
+    if componentType in ["Comparison", "Validation"] and not hasValidPropertyValue(originalComponent, "type", [">", "<", ">=", "<=", "="]):
+      artifactComponent["type"] = f"Invalid comparison type provided."
+
+    if componentType == "Selection" and not hasValidPropertyValue(originalComponent, "type", ["all_selected", "at_least_one", "exactly_one", "none_selected"]):
+      artifactComponent["type"] = f"Invalid selection type provided."
+
+    for prop in requiredProps[componentType]:
+      if prop not in originalComponent:
+        artifactComponent[prop] = f"Component is missing {prop} property!"
+        self.valid = False
+  
+  # Verifies that the given ID property is unique given a set
+  # of possible ID values. Beware: modifies the provided set!
+  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool) -> tuple[bool, str]:
+    if prop in original:
+      value = original[prop]
+      if value in unusedIDs:
+        unusedIDs.discard(value)
+        return True, None
+      else:
+        return False, f"Duplicate {prop} detected!"
+    elif required:
+      return False, missingErrorMessage(type, prop)
+    else:
+      return True, None
+    
+  # Verifies the the property on the given page or component is an actual
+  # page identifier in use somewhere. Supports optional properties.
+  def isValidID(self, original, artifact, prop: str, required: bool):
+    isPage = isinstance(original, Page) # This method deals with both components and pages
+
+    if (isPage and hasattr(original, prop)) or (not isPage and prop in original):
+      value = original[prop] if not isPage else getattr(original, prop)
+      if value in self.pageIDs:
+        return True
+      else:
+        setattr(artifact, prop, f"Provided {prop} is not used by any page/component.")
+        return False
+    elif required:
+      setattr(artifact, prop, missingErrorMessage(prop))
+      return False
+    else:
+      return True
+    
+  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set) -> tuple[str, set]:
+    currPage: Page = self.getPage(targetPage)
+    visitedPages = set(visitedPages)
+    
+    if currPage.pageID in visitedPages:
+      visitedPages.add(currPage.pageID)
+      self.valid = False
+      return "Workflow loops back on itself!", visitedPages
+    else:
+      visitedPages.add(currPage.pageID)
+
+      error, visited = self.searchForUnusedAndLoopsHelper(currPage.defaultLink, visitedPages)
+      if error != None: self.getArtifactPage(currPage.pageID).defaultLink = error
+      visitedPages.update(visited)
+
+      # loop and do satisfiedLink of any logic components, link of any button or mc choice
+    
+      return None, visitedPages
+
+  def searchForUnusedAndLoops(self):
+    error, visited = self.searchForUnusedAndLoopsHelper(0, set())
+
+    unused = self.pageIDs - visited
+    for pageID in unused:
+      self.getArtifactPage(pageID).pageError = "Unused page: nothing links to this page!"
+
+class WorkflowIter:
+  def __init__(self, pages):
+    self.index = -1
+    self.pages = pages
+
+  def __iter__(self):
+    return self
+
+  def __next__(self):
+    if (self.index + 1) < len(self.pages):
+      self.index += 1
+      return self.pages[self.index]
+    else:
+      raise StopIteration
+
+class WorkflowArtifact:
+  def __init__(self, workflow):
+    self.pages = []
+
+    for pageIndex in range(len(workflow["pages"])):
+      originalPage = workflow["pages"][pageIndex]
+      
+      self.pages.append(Page(originalPage["pageID"]))
+      validatedPage = self.pages[pageIndex]
+
+      for componentIndex in range(len(originalPage["content"])):
+        originalComponent = originalPage["content"][componentIndex]
+
+        validatedPage.content.append({
+          "index": f"{originalPage['pageID']}, {componentIndex}",
+          "component": originalComponent["component"]
+        })
+
+  def getSerializable(self):
+    return json.dumps(self.__dict__, cls=PageEncoder, ensure_ascii=False)
+
+# =============== #
+# MAIN VALIDATION #
 
 # Validates the given workflow, returning an json-style object where
 # properties map to error messages. Does not mutate the input workflow.
-def validateWorkflow(workflow):
-  artifact = deepCopyWorkflowStructure(workflow)
-  
-  pageIDs, valueIDs = getAllIdentifiers(workflow, artifact)
+def validateWorkflow(rawWorkflow):
+  workflow = Workflow(rawWorkflow)
+  valid = workflow.validate()
 
-  unusedPageIDs = copy.copy(pageIDs)
-  unusedValueIDs = copy.copy(valueIDs)
-
-  valid = True
-
-  for pageIndex in range(len(workflow["pages"])):
-    originalPage = workflow["pages"][pageIndex]
-    validatedPage = artifact["pages"][pageIndex]
-
-    valid = validatePageObj(originalPage, validatedPage, pageIDs, unusedPageIDs) and valid
-
-    for componentIndex in range(len(originalPage["content"])):
-      originalComponent = originalPage["content"][componentIndex]
-      validatedComponent = validatedPage["content"][componentIndex]
-
-      valid = validateComponentObj(originalPage, originalComponent, validatedComponent, valueIDs, unusedValueIDs) and valid
-
-  return artifact, valid
+  return workflow.artifact.getSerializable(), valid
 
 # ============== #
 # VALIDATION CLI #
