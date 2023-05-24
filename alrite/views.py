@@ -606,10 +606,9 @@ class LoginAPIView(APIView):
 class PostAuthenticator:
     """ Only authenticate for post requests """
     def has_permission(self, request, view):
-        return True
         if request.method == 'GET':
             return True
-        elif type(request.user) == CustomUser:
+        if hasattr(request.user, 'is_admin'):
             return request.user.is_admin
         return False
 
@@ -677,12 +676,14 @@ class WorkflowAPIView(APIView):
         Returns a json object with parameters of the created workflow, including the
         version, api path, time created and author
         If invalid json is passed in a 400 error is returned """
+        print (request.user)
 
         if version is not None:
             return Response("Modifying versions of workflows is not supported",
                     status=status.HTTP_400_BAD_REQUEST)
 
         jsonobj = request.data
+
         errors_obj, valid = validation.validateWorkflow(jsonobj)
         schema = self.extract_schema(jsonobj)
 
@@ -748,6 +749,8 @@ class ListWorkflowsAPIView(APIView):
                 preview = entry.preview,
                 time_created = entry.time_created,
                 created_by = None if entry.created_by is None else entry.created_by.get_username(),
+                apipath = '/alrite/apis/workflows/{}/{}/'.format(
+                    entry.workflow_id, "preview" if entry.preview else entry.version),
             ))
         return Response(result)
 
@@ -755,7 +758,11 @@ class SaveWorkflowPatientAPIView(APIView):
     authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def post(self, request, workflow_id, version):
-        """ POST endpoint to upload patient data collected by a workflow """
+        """ POST endpoint to upload patient data collected by a workflow
+        The data is expected to be in json format, with two fields:
+            summary: a dictionary with all valueIDs mapped to the collected value
+            diagnoses: a list of the diagnoses that the app decided on """
+
         query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
         if query.count() == 0:
             return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
