@@ -253,12 +253,15 @@ class Workflow:
 
     if componentType == "TextInput" and not hasValidPropertyValue(originalComponent, "type", ["numeric", "alphanumeric", "text", "any"]):
       artifactComponent["type"] = f"Invalid input type provided."
+      self.valid = False
 
     if componentType in ["Comparison", "Validation"] and not hasValidPropertyValue(originalComponent, "type", [">", "<", ">=", "<=", "="]):
       artifactComponent["type"] = f"Invalid comparison type provided."
+      self.valid = False
 
     if componentType == "Selection" and not hasValidPropertyValue(originalComponent, "type", ["all_selected", "at_least_one", "exactly_one", "none_selected"]):
       artifactComponent["type"] = f"Invalid selection type provided."
+      self.valid = False
 
     self.valid = self.valid and self.isValidID(originalComponent, artifactComponent, "targetValueID", self.valueIDs, False)
 
