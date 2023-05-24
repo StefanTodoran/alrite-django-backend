@@ -768,13 +768,21 @@ class SaveWorkflowPatientAPIView(APIView):
             return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
         workflow = query[0]
+
+        errors = {}
+        if 'summary' not in request.data:
+            errors['summary'] = 'this field is required'
+        if 'diagnoses' not in request.data:
+            errors['diagnoses'] = 'this field is required'
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
         valid_keys = [field['name'] for field in workflow.schema]
 
         data = {}
-        for key, value in request.data.items():
+        for key, value in request.data['summary']:
             if key in valid_keys:
                 data[key] = value
-
 
         workflow.datamodel().objects.create(patient_uuid=uuid.uuid4(), **data)
 
