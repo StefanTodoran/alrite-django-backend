@@ -8,60 +8,63 @@ needsValueID = [
   "Counter",
 ]
 
-requiredProps = { # commented out props are optional
-  "Paragraph": [
-    "text"
-  ],
-  "MediaItem": [
-    "fileName",
-    # "label"
-  ],
-  "MultipleChoice": [
-    "label",
-    "valueID",
-    "multiselect",
-  ],
-  "Choice": [
-    "text",
-    "value",
-    # "link",
-  ],
-  "TextInput": [
-    "label",
-    "type",
-    "valueID",
-    # "units",
-    # "defaultValue",
-  ],
-  "Button": [
-    "text",
-    # "hint",
-    "link",
-  ],
-  "Counter": [
-    "title",
-    # "hint",
-    "timeLimit",
-    "valueID",
-    "offerManualInput",
-  ],
+componentProps = {
+  # True means prop is required,
+  # False means prop may be omitted.
 
-  "Comparison": [
-    "type",
-    "threshold",
-    "targetValueID",
-    "satisfiedLink",
-  ],
-  "Selection": [
-    "type",
-    "targetValueID",
-    "satisfiedLink",
-  ],
-  "Validation": [
-    "type",
-    "threshold",
-    "targetValueID",
-  ],
+  "Paragraph": {
+    "text": True,
+  },
+  "MediaItem": {
+    "fileName": True,
+    "label": False
+  },
+  "MultipleChoice": {
+    "label": True,
+    "valueID": True,
+    "multiselect": True,
+  },
+  "Choice": {
+    "text": True,
+    "value": True,
+    "link": False,
+  },
+  "TextInput": {
+    "label": True,
+    "type": True,
+    "valueID": True,
+    "units": False,
+    "defaultValue": False,
+  },
+  "Button": {
+    "text": True,
+    "hint": False,
+    "link": True,
+  },
+  "Counter": {
+    "title": True,
+    "hint": False,
+    "timeLimit": True,
+    "valueID": True,
+    "offerManualInput": True,
+  },
+
+  "Comparison": {
+    "type": True,
+    "threshold": True,
+    "targetValueID": True,
+    "satisfiedLink": True,
+  },
+  "Selection": {
+    "type": True,
+    "targetValueID": True,
+    "satisfiedLink": True,
+  },
+  "Validation": {
+    "type": True,
+    "threshold": True,
+    "targetValueID": True,
+  },
 }
 
 # ================ #
@@ -257,8 +260,10 @@ class Workflow:
     if componentType == "Selection" and not hasValidPropertyValue(originalComponent, "type", ["all_selected", "at_least_one", "exactly_one", "none_selected"]):
       artifactComponent["type"] = f"Invalid selection type provided."
 
-    for prop in requiredProps[componentType]:
-      if prop not in originalComponent:
+    self.valid = self.valid and self.isValidID(originalComponent, artifactComponent, "targetValueID", False)
+
+    for prop, required in componentProps[componentType].items():
+      if required and prop not in originalComponent:
         artifactComponent[prop] = f"Component is missing {prop} property!"
         self.valid = False
   
@@ -277,42 +282,82 @@ class Workflow:
     else:
       return True, None
     
-  # Verifies the the property on the given page or component is an actual
-  # page identifier in use somewhere. Supports optional properties.
+  # Verifies the the property on the given page or component is an actual page
+  #  identifier in use somewhere. Supports optional properties, on components and pages
   def isValidID(self, original, artifact, prop: str, required: bool):
-    isPage = isinstance(original, Page) # This method deals with both components and pages
-
-    if (isPage and hasattr(original, prop)) or (not isPage and prop in original):
-      value = original[prop] if not isPage else getattr(original, prop)
+    if isinstance(original, Page):
+      return self._checkPageHasValidID(original, artifact, prop, required)
+    else:
+      return self._checkComponentHasValidID(original, artifact, prop, required)
+    
+  def _checkPageHasValidID(self, original, artifact, prop: str, required: bool):
+    if hasattr(original, prop):
+      value = getattr(original, prop)
       if value in self.pageIDs:
         return True
       else:
         setattr(artifact, prop, f"Provided {prop} is not used by any page/component.")
         return False
     elif required:
-      setattr(artifact, prop, missingErrorMessage(prop))
+      setattr(artifact, prop, missingErrorMessage(prop, "page"))
+      return False
+    else:
+      return True
+      
+  def _checkComponentHasValidID(self, original, artifact, prop: str, required: bool):
+    if prop in original:
+      value = original[prop]
+      if value in self.pageIDs:
+        return True
+      else:
+        artifact[prop] = f"Provided {prop} is not used by any page/component."
+        return False
+    elif required:
+      artifact[prop] = missingErrorMessage(prop, "component")
       return False
     else:
       return True
     
   def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set) -> tuple[str, set]:
-    currPage: Page = self.getPage(targetPage)
-    visitedPages = set(visitedPages)
+    try:
+      currPage: Page = self.getPage(targetPage)
+    except KeyError:
+      return "None or invalid pageID provided!", visitedPages
     
+    seenPages = set(visitedPages)
+    visitedPages = set(visitedPages)
+
     if currPage.pageID in visitedPages:
-      visitedPages.add(currPage.pageID)
+      seenPages.add(currPage.pageID)
       self.valid = False
-      return "Workflow loops back on itself!", visitedPages
+      return "Workflow loops back on itself!", seenPages
     else:
       visitedPages.add(currPage.pageID)
+      seenPages.add(currPage.pageID)
+      artifactPage = self.getArtifactPage(targetPage)
 
-      error, visited = self.searchForUnusedAndLoopsHelper(currPage.defaultLink, visitedPages)
-      if error != None: self.getArtifactPage(currPage.pageID).defaultLink = error
-      visitedPages.update(visited)
+      if not currPage.isDiagnosisPage:
+        error, visited = self.searchForUnusedAndLoopsHelper(currPage.defaultLink, visitedPages)
+        if error != None: artifactPage.defaultLink = error
+        seenPages.update(visited)
 
-      # loop and do satisfiedLink of any logic components, link of any button or mc choice
+        for componentIndex in range(len(currPage.content)):
+          originalComponent = currPage.content[componentIndex]
+          artifactComponent = artifactPage.content[componentIndex]
+          componentType = originalComponent["component"]
+
+          if componentType == "MultipleChoice":
+            print(originalComponent)
+          else:
+            for prop in componentProps[componentType]:
+              # If the prop is any kind of prop that could cause the
+              # "Next" button to lead somewhere, it is a branch we must check.
+              if prop in ["link", "satisfiedLink"]:
+                error, visited = self.searchForUnusedAndLoopsHelper(originalComponent[prop], visitedPages)
+                if error != None: artifactComponent[prop] = error
+                seenPages.update(visited)
     
-      return None, visitedPages
+      return None, seenPages
 
   def searchForUnusedAndLoops(self):
     error, visited = self.searchForUnusedAndLoopsHelper(0, set())
@@ -320,6 +365,7 @@ class Workflow:
     unused = self.pageIDs - visited
     for pageID in unused:
       self.getArtifactPage(pageID).pageError = "Unused page: nothing links to this page!"
+      self.valid = False
 
 class WorkflowIter:
   def __init__(self, pages):
@@ -367,6 +413,29 @@ def validateWorkflow(rawWorkflow):
   valid = workflow.validate()
 
   return workflow.artifact.getSerializable(), valid
+
+# { changes artifact:
+#   pages: [
+#     {
+#       title,
+#       pageID,
+#       status: "removed", "added", "modified", "unchanged"
+#       changes: [strings] 
+#     }
+#   ]
+# }
+
+# Given two workflows, returns 
+def calculateChanges(rawWorkflowA, rawWorkflowB):
+  pass
+
+def getBrokenWorkflowErrorArtifact(rawWorkflow):
+  return {
+    "pages": [{
+      "pageID": rawWorkflow["pages"][0]["pageID"],
+      "pageError": "Catastrophic error: could not parse workflow. Contact system administrator."
+    }]
+  }
 
 # ============== #
 # VALIDATION CLI #

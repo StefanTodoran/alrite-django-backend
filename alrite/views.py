@@ -681,7 +681,8 @@ class WorkflowAPIView(APIView):
         try:
             errors_obj, valid = validation.validateWorkflow(jsonobj)
         except:
-            print("An exception occurred during validation!") 
+            errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
+            valid = False
         schema = self.extract_schema(jsonobj)
 
         if not valid:
@@ -725,7 +726,11 @@ class WorkflowAPIView(APIView):
 class ValidationAPIView(APIView):
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def post(self, request):
-        errors_obj, valid = validation.validateWorkflow(request.data)
+        try:
+            errors_obj, valid = validation.validateWorkflow(request.data)
+        except:
+            errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
+            valid = False
         
         if valid:
             return Response(errors_obj)
