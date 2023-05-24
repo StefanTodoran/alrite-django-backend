@@ -701,13 +701,13 @@ class WorkflowAPIView(APIView):
                 next_version += 1
 
         time_created = datetime.now(timezone.utc)
-        user = None
+        user = request.user if type(request.user) == CustomUser else None
 
         responseobj = dict(
             version = next_version,
             apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, "preview" if preview else next_version),
             time_created = str(time_created),
-            created_by = user,
+            created_by = None if user is None else user.username,
         )
         jsonobj['meta'] = responseobj
         jsontxt = json.dumps(jsonobj)
