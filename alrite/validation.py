@@ -216,7 +216,7 @@ class Workflow:
     artifactPage = self.getArtifactPage(target)
 
     self.valid = self.valid and self.ensureUniquePageID(originalPage, artifactPage, unusedPageIDs)
-    self.valid = self.valid and self.isValidID(originalPage, artifactPage, "defaultLink", True)
+    self.valid = self.valid and self.isValidID(originalPage, artifactPage, "defaultLink", self.pageIDs, True)
 
     if originalPage.defaultLink == originalPage.pageID:
       artifactPage.defaultLink = "Page should not link to itself!"
@@ -260,7 +260,7 @@ class Workflow:
     if componentType == "Selection" and not hasValidPropertyValue(originalComponent, "type", ["all_selected", "at_least_one", "exactly_one", "none_selected"]):
       artifactComponent["type"] = f"Invalid selection type provided."
 
-    self.valid = self.valid and self.isValidID(originalComponent, artifactComponent, "targetValueID", False)
+    self.valid = self.valid and self.isValidID(originalComponent, artifactComponent, "targetValueID", self.valueIDs, False)
 
     for prop, required in componentProps[componentType].items():
       if required and prop not in originalComponent:
@@ -282,18 +282,18 @@ class Workflow:
     else:
       return True, None
     
-  # Verifies the the property on the given page or component is an actual page
-  #  identifier in use somewhere. Supports optional properties, on components and pages
-  def isValidID(self, original, artifact, prop: str, required: bool):
+  # Verifies the the property on the given page or component is an actual identifier
+  # in use somewhere. Supports optional properties, on both components and pages
+  def isValidID(self, original, artifact, prop: str, values: list, required: bool):
     if isinstance(original, Page):
-      return self._checkPageHasValidID(original, artifact, prop, required)
+      return self._checkPageHasValidID(original, artifact, prop, values, required)
     else:
-      return self._checkComponentHasValidID(original, artifact, prop, required)
+      return self._checkComponentHasValidID(original, artifact, prop, values, required)
     
-  def _checkPageHasValidID(self, original, artifact, prop: str, required: bool):
+  def _checkPageHasValidID(self, original, artifact, prop: str, values: list, required: bool):
     if hasattr(original, prop):
       value = getattr(original, prop)
-      if value in self.pageIDs:
+      if value in values:
         return True
       else:
         setattr(artifact, prop, f"Provided {prop} is not used by any page/component.")
@@ -304,10 +304,10 @@ class Workflow:
     else:
       return True
       
-  def _checkComponentHasValidID(self, original, artifact, prop: str, required: bool):
+  def _checkComponentHasValidID(self, original, artifact, prop: str, values: list, required: bool):
     if prop in original:
       value = original[prop]
-      if value in self.pageIDs:
+      if value in values:
         return True
       else:
         artifact[prop] = f"Provided {prop} is not used by any page/component."
