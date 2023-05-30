@@ -17,6 +17,7 @@ class CreateUser(forms.ModelForm):
         fields = [
             'first_name',
             'last_name',
+            'username',
             'password',
             'healthy_facility',
         ]

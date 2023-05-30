@@ -13,7 +13,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap" rel="stylesheet">
 </head>
-<body class="darkMode">
+<body>
+  <script src="{% static 'js/base.js'%}"> </script>
+
   <header>
     <nav class="card" id="page-navigation">
       <span>
@@ -22,12 +24,14 @@
       </span>
 
       <span>
+        {% block page-nav-links %}
         <a class="page-nav-item {% block page-nav-dashboard %}{% endblock page-nav-dashboard %}" href="{% url 'dashboard' %}">Dashboard</a>
         <a class="page-nav-item" href="{% url 'editor' %}">Editor</a>
         <a class="page-nav-item {% block page-nav-workflows %}{% endblock page-nav-workflows %}" href="{% url 'workflows' %}">Workflows</a>
-        <a class="page-nav-item" href="{% url 'clinicians' %}">Clinicians</a>
-        <a class="page-nav-item" href="">Patients</a>
+        <a class="page-nav-item {% block page-nav-clinicians %}{% endblock page-nav-clinicians %}" href="{% url 'clinicians' %}">Clinicians</a>
+        <a class="page-nav-item {% block page-nav-patients %}{% endblock page-nav-patients %}" href="">Patients</a>
         <a class="page-nav-item" href="{% url 'logout' %}">Log out</a>
+        {% endblock page-nav-links %}
       </span>
     </nav>
   </header>
@@ -42,8 +46,6 @@
 
   <img class="util-button" id="dark-mode-button" style="--label: Change Theme" src="{% static 'alrite-workflow-editor/assets/dark_mode.png'%}" />
   <img class="util-button hidden" id="light-mode-button" style="--label: Change Theme" src="{% static 'alrite-workflow-editor/assets/light_mode.png'%}" />
-  
-  <script src="{% static 'js/base.js'%}"> </script>
 </body>
 </html>
 

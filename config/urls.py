@@ -24,8 +24,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('alrite/', include('alrite.urls')),
     path('', HomePageView.as_view(), name='index'),
-    path('login/', LoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(), name='logout'),
+    path("accounts/", include("django.contrib.auth.urls")),
+    #path('login/', LoginView.as_view(), name='login'),
+    #path('logout/', LogoutView.as_view(), name='logout'),
 ]
 
 if settings.DEBUG:

@@ -1,52 +1,39 @@
-{% extends 'base_old.html' %}
-{% load static %}
-{% load crispy_forms_tags %}
+{% extends 'base.html'%}
+
+{% block page-nav-clinicians %}
+active
+{% endblock page-nav-clinicians %}
+
 {% block content %}
-    <div class="content">
+<section>
+  <h2 class="page-title">
+    All Clinicians
+  </h2>
+</section>
 
-        {% if user.is_authenticated %}
-            {% if request.user.is_admin %}
+<section class="card">
+  <table>
+    <thead> <tr>
+      <th scope="col">Username</th>
+      <th scope="col">Name</th>
+      <th scope="col">Email</th>
+      <th scope="col">Role</th>
+      <th scope="col">Forms Submitted</th>
+    </tr> </thead>
 
-                <div>
-                    <div class="cli-head text-right ">
-                        <a href="{% url 'register' %}" class="btn btn-sm mt-3" style="background-color: #8CD78F; color: white; width: 200px">Create Clinician</a>
-                    </div>
-                    <div class="cli-table m-4">
-                         <div class="table-div mt-5 my-custom-scrollbar table-wrapper-scroll-y">
-                            <table class="table-data">
-                                <thead>
-                                    <tr>
-                                        <td>Clinician</td>
-                                        <td>Health Facility</td>
-                                        <td>Forms submitted</td>
-                                        <td>Complete Forms</td>
-                                        <td>Incomplete Forms</td>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for cli in clinicians %}
-                                        <tr>
-                                            <td>AL{{ cli.healthy_facility.code }}{{ cli.code }}</td>
-                                            <td>{{ cli.healthy_facility.name }}</td>
-                                            <td>{{ cli.forms }}</td>
-                                            <td>{{ cli.completed_forms }}</td>
-                                            <td>{{ cli.incomplete_forms }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+    {% for user in users %}
+    <tbody>
+      <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.name }}</td>
+        <td>{{ user.email|urlizetrunc:20 }}</td>
+        <td>{{ user.role }}</td>
+        <td>{{ user.forms }}</td>
+      </tr>
+    </tbody>
 
-            {% else %}
-                <div class="pags">
-                    <p>You are not authorized to access this page</p>
-                </div>
+    {% endfor %}
 
-            {% endif %}
-
-        {% endif %}
-
-    </div>
+  </table>
+</section>
 {% endblock content %}
