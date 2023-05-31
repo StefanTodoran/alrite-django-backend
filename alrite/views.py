@@ -779,6 +779,8 @@ class ValidationAPIView(APIView):
             errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
             valid = False
         
+        # print(validation.calculateChanges(request.data, request.data))
+        
         if valid:
             return Response(errors_obj)
         else:

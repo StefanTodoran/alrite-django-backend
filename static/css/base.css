@@ -19,7 +19,9 @@ body.do-transition {
     transition: background-color 0.5s ease;
 }
 
-body {
+body,
+button,
+input {
     font-family: 'Poppins', sans-serif;
 }
 
@@ -96,6 +98,37 @@ table tbody:last-child tr:last-child td:last-child {
     border-bottom-right-radius: 7px;
 }
 
+.card h1 {
+    font-weight: 400;
+    font-size: 20px;
+    opacity: 0.85;
+}
+
+.card h2 {
+    font-size: 12px;
+    opacity: 0.35;
+    font-weight: 300;
+}
+
+.card label {
+    font-size: 14px;
+    opacity: 0.45;
+    font-weight: 300;
+}
+
+.card button {
+    border: none;
+    border-radius: 3px;
+    color: white;
+    background-color: var(--near-black);
+    transition: background-color 0.5s ease, opacity 0.5s ease;
+}
+
+.card button:hover {
+    cursor: pointer;
+    background-color: var(--alrite-green);
+}
+
 .card {
     background-color: var(--light-background);
     border: 3px solid var(--light-border);
@@ -133,6 +166,16 @@ table tbody:last-child tr:last-child td:last-child {
     display: block;
 }
 
+#login-card h1 {
+    font-size: 24px;
+    margin-bottom: 0;
+}
+
+#login-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
 #page-navigation {
     margin: 10px 10px;
     padding: 10px 15px;
@@ -164,7 +207,7 @@ table tbody:last-child tr:last-child td:last-child {
     border-radius: 6px;
 }
 
-.logo {
+h1.logo {
     color: var(--alrite-green) !important;
     font-weight: 600;
     font-size: 30px;

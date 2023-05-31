@@ -86,6 +86,17 @@ def missingErrorMessage(prop: str, type: str = None) -> str:
 def hasValidPropertyValue(component, prop, valid):
   return prop in component and component[prop] in valid
 
+def dictCompare(d1, d2):
+  d1_keys = set(d1.keys())
+  d2_keys = set(d2.keys())
+  shared_keys = d1_keys.intersection(d2_keys)
+  
+  added = d1_keys - d2_keys
+  removed = d2_keys - d1_keys
+  modified = {o : (d1[o], d2[o]) for o in shared_keys if d1[o] != d2[o]}
+  same = set(o for o in shared_keys if d1[o] == d2[o])
+  return added, removed, modified, same
+
 # ================ #
 # WORKFLOW CLASSES #
 # ================ #
@@ -97,11 +108,13 @@ class PageEncoder(json.JSONEncoder):
     return obj.__dict__ 
 
 class Page():
-  def __init__(self, pageID, defaultLink: str = None, isDiagnosisPage: bool = None, content: list = None):
+  def __init__(self, pageID, rawPage = None):
     self.pageID = pageID
-    self.defaultLink = defaultLink
-    self.isDiagnosisPage = isDiagnosisPage
-    self.content = content or []
+
+    self.defaultLink: str = rawPage["defaultLink"] if rawPage is not None else None
+    self.isDiagnosisPage: bool = rawPage["isDiagnosisPage"] if rawPage is not None else None
+    self.title: str = rawPage["title"] if rawPage is not None else None
+    self.content: list = rawPage["content"] if rawPage is not None else []
 
     # Pages can have error information that isn't specific to a prop (unused page)
     # or we can't store in the prop (pageID) so we use this instead.
@@ -123,8 +136,8 @@ class Workflow:
     self.valid = True
     self.artifact = WorkflowArtifact(workflow)
     
-    self.pages = self._extractPageData()  
-    self.indexMap = self._createPageIdentifierMap()
+    self.pages: list(Page) = self._extractPageData()  
+    self.indexMap: list(Page) = self._createPageIdentifierMap()
 
     self.pageIDs, self.valueIDs = self._getAllIdentifiers()
 
@@ -140,12 +153,7 @@ class Workflow:
 
     for pageIndex in range(len(self.rawWorkflow["pages"])):
       rawPage = self.rawWorkflow["pages"][pageIndex]
-      pages.append(Page(
-        rawPage["pageID"],
-        rawPage["defaultLink"],
-        rawPage["isDiagnosisPage"],
-        rawPage["content"],
-      ))
+      pages.append(Page(rawPage["pageID"], rawPage))
     
     return pages
 
@@ -272,7 +280,7 @@ class Workflow:
   
   # Verifies that the given ID property is unique given a set
   # of possible ID values. Beware: modifies the provided set!
-  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool):# -> tuple[bool, str]:
+  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool) -> tuple[bool, str]:
     if prop in original:
       value = original[prop]
       if value in unusedIDs:
@@ -321,7 +329,7 @@ class Workflow:
     else:
       return True
     
-  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set):# -> tuple[str, set]:
+  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set) -> tuple[str, set]:
     try:
       currPage: Page = self.getPage(targetPage)
     except KeyError:
@@ -370,6 +378,38 @@ class Workflow:
       self.getArtifactPage(pageID).pageError = "Unused page: nothing links to this page!"
       self.valid = False
 
+  # =============== #
+  # VERSION CHANGES #
+  # =============== #
+
+  def computeChanges(self, other: "Workflow"):
+    changesArtifact = WorkflowArtifact(self.rawWorkflow, True)
+
+    for page in self.pages:
+      otherPage: Page = other.getPage(page.pageID)
+      changesPage: Page = changesArtifact.pages[self.indexMap[page.pageID]]
+
+      if otherPage.title != page.title:
+        changesPage.title = True
+
+      if otherPage.defaultLink != page.defaultLink:
+        changesPage.defaultLink = True
+      
+      if otherPage.isDiagnosisPage != page.isDiagnosisPage:
+        changesPage.isDiagnosisPage = True
+
+      for componentIndex in range(len(page.content)):
+        component = page.content[componentIndex]
+        otherComponent = otherPage.content[componentIndex]
+        added, removed, modified, same = dictCompare(component, otherComponent)
+
+        if component["component"] != otherComponent["component"]:
+          changesPage.content[componentIndex] = f"The {componentIndex} component was changed from {component['component']} to {component['component']}."
+        elif component != otherComponent:
+          changesPage.content[componentIndex] = f"The {componentIndex} component had the following props changed: {modified}"
+
+    return changesArtifact
+
 class WorkflowIter:
   def __init__(self, pages):
     self.index = -1
@@ -386,7 +426,7 @@ class WorkflowIter:
       raise StopIteration
 
 class WorkflowArtifact:
-  def __init__(self, workflow):
+  def __init__(self, workflow, noContent = False):
     self.pages = []
 
     for pageIndex in range(len(workflow["pages"])):
@@ -398,10 +438,12 @@ class WorkflowArtifact:
       for componentIndex in range(len(originalPage["content"])):
         originalComponent = originalPage["content"][componentIndex]
 
-        validatedPage.content.append({
-          "index": f"{originalPage['pageID']}, {componentIndex}",
-          "component": originalComponent["component"]
-        })
+        if not noContent:
+          validatedPage.content.append({
+            "component": originalComponent["component"]
+          })
+        else:
+          validatedPage.content.append("")
 
   def getSerializable(self):
     return json.dumps(self.__dict__, cls=PageEncoder, ensure_ascii=False)
@@ -417,25 +459,15 @@ def validateWorkflow(rawWorkflow):
 
   return workflow.artifact.getSerializable(), valid
 
-# { changes artifact:
-#   pages: [
-#     {
-#       title,
-#       pageID,
-#       status: "removed", "added", "modified", "unchanged"
-#       changes: [strings] 
-#     }
-#   ]
-# }
-
 
 # Given two workflows, returns a json-style object enumerating
 # changes assuming workflowA came before workflowB, formatted like so:
 # {
 #   pages: [
 #     {
-#       title: Boolean status whether the title was changed,
 #       pageID: The string page ID,
+#       title: Boolean status whether the title was changed,
+#       defaultLink: Boolean status whether the defaultLink was changed,
 #       status: A string status "removed", "added", "modified, or "unchanged",
 #       changes: Array of strings for each component, empty string if component wasn't
 #                changed and a string description of the change if it was changed.
@@ -447,7 +479,7 @@ def calculateChanges(rawWorkflowA, rawWorkflowB):
   workflowA = Workflow(rawWorkflowA)
   workflowB = Workflow(rawWorkflowB)
 
-  return workflowA.artifact.getSerializable()
+  return workflowA.computeChanges(workflowB).getSerializable()
 
 def getBrokenWorkflowErrorArtifact(rawWorkflow):
   return {
