@@ -18,7 +18,7 @@ urlpatterns = [
 
     path('apis/login/', login_api),
     path('registration/', RegisterView.as_view(), name='register'),
-    path('clinicians/', CliniciansPageView.as_view(), name='clinicians'),
+    path('clinicians/', CliniciansView.as_view(), name='clinicians'),
     path('app_usage/', AppUsageView.as_view(), name='app_usage'),
     path('apis/saveData/', SavePatientDataView.as_view()),
     path('apis/saveCounter/', SaveCountDataView.as_view()),
@@ -39,14 +39,14 @@ urlpatterns = [
     # 
     # A GET request to the 'workflows/' directiory will return a json list of
     # all of the workflows with their id, version, creation time and author.
-    path('apis/workflows/<workflow_id>/', WorkflowAPIView.as_view()),
-    path('apis/workflows/<workflow_id>/<int:version>/', WorkflowAPIView.as_view()),
-    path('apis/workflows/<workflow_id>/preview/', WorkflowAPIView.as_view(), {"preview": True}),
-    path('apis/workflows/', ListWorkflowsAPIView.as_view()),
+    path('apis/workflows/<workflow_id>/', WorkflowAPIView.as_view(), name='workflow-api'),
+    path('apis/workflows/<workflow_id>/<int:version>/', WorkflowAPIView.as_view(), name='workflow-version-api'),
+    path('apis/workflows/<workflow_id>/preview/', WorkflowAPIView.as_view(), {"preview": True}, name='workflow-preview-api'),
+    path('apis/workflows/', ListWorkflowsAPIView.as_view(), name='list-workflows-api'),
 
-    path('apis/validation/', ValidationAPIView.as_view()),
+    path('apis/validation/', ValidationAPIView.as_view(), name='validation-api'),
 
-    path('apis/data/<workflow_id>/<version>/', SaveWorkflowPatientAPIView.as_view()),
+    path('apis/data/<workflow_id>/<version>/', SaveWorkflowPatientAPIView.as_view(), name='workflow-data-api'),
 
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
     path('download_data/', ExportCSVView.as_view(), name="download")

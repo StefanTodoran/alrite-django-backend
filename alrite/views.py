@@ -12,7 +12,7 @@ from django.shortcuts import render
 from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, FormView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.hashers import make_password
 from django.http import Http404
@@ -38,41 +38,44 @@ from django.db.models import Sum
 from . import validation
 
 # Create your views here.
-class RegisterView(LoginRequiredMixin, CreateView):
+
+class RegisterView(CreateView):
     template_name = 'registration/register.html'
     form_class = CreateUser
+    fields = ['first_name', 'last_name', 'username', 'healthy_facility', 'password']
     success_url = reverse_lazy('clinicians')
 
     def form_valid(self, form):
         # user = form.save(commit=False)
-        first = form.cleaned_data['first_name']
-        last = form.cleaned_data['last_name']
-        healthy = form.cleaned_data['healthy_facility']
-        password = form.cleaned_data['password']
-        username = first + "_" + last
+        #first = form.cleaned_data['first_name']
+        #last = form.cleaned_data['last_name']
+        #healthy = form.cleaned_data['healthy_facility']
+        #password = form.cleaned_data['password']
+        #username = first + "_" + last
 
-        clinician_code = CustomUser.objects.filter(healthy_facility=healthy)
+        #clinician_code = CustomUser.objects.filter(healthy_facility=healthy)
 
-        if clinician_code.exists():
-            clinician_code = clinician_code.latest('date_joined').code
-            new_code = int(clinician_code)
-            new_code = new_code + 1
-            code = "0" + str(new_code)
-        else:
-            code = "01"
+        #if clinician_code.exists():
+        #    clinician_code = clinician_code.latest('date_joined').code
+        #    new_code = int(clinician_code)
+        #    new_code = new_code + 1
+        #    code = "0" + str(new_code)
+        #else:
+        #    code = "01"
 
-        user = form.save(commit=False)
-        user.username = username
-        user.password = make_password(password)
-        user.is_nurse = True
-        user.code = code
+        #user = form.save(commit=False)
+        #user.username = username
+        #user.password = make_password(password)
+        #user.is_nurse = True
+        #user.code = code
 
-        user.save()
+        #user.save()
 
         return super(RegisterView, self).form_valid(form)
 
 @api_view(['POST'])
 def login_api(request):
+    print (request.user)
     serializer = AuthTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
@@ -262,7 +265,7 @@ def value_none(value):
 
 
 class CliniciansPageView(LoginRequiredMixin, TemplateView):
-    template_name = 'clinicians.html'
+    template_name = 'clinicians_old.html'
 
     def get_context_data(self, **kwargs):
         clinicians = CustomUser.objects.filter(is_nurse=True)
@@ -478,7 +481,6 @@ class WorkflowsView(LoginRequiredMixin, TemplateView):
                 )
 
         context['workflows'] = list(workflows.values())
-        print (context)
 
         return context
 
@@ -550,8 +552,32 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
 class DashboardView(LoginRequiredMixin, TemplateView):
     """ View that summarizes important info about workflows
     and the data collected, meant to be the landing
-    page for the backend """
+    page for the backend
+    """
     template_name = 'dashboard.html'
+
+class CliniciansView(LoginRequiredMixin, TemplateView):
+    """ View that lists all clinicians along with helpful info
+    """
+    template_name = 'clinicians.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(CliniciansView, self).get_context_data(**kwargs)
+        
+        users = []
+        for user in CustomUser.objects.all():
+            role = 'Admin' if user.is_admin else 'Doctor' if user.is_doctor else 'Nurse' if user.is_nurse else ''
+            users.append(dict(
+                username = user.username,
+                name = user.first_name + ' ' + user.last_name,
+                email = user.email,
+                role = role,
+                forms = user.forms,
+            ))
+
+        context['users'] = users
+        
+        return context
 
 
 class EditorView(LoginRequiredMixin, View):
@@ -565,14 +591,18 @@ class EditorView(LoginRequiredMixin, View):
 
 # API Views
 
-class LoginAPIView(ObtainAuthToken):
+class LoginAPIView(APIView):
     """ API to obtain a token by logging in """
 
     def post(self, request, *args, **kwargs):
-        #serializer = AuthTokenSerializer(data=request.data)
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
+        
+        if not request.user.is_anonymous and type(request.user) == CustomUser:
+            user = request.user
+        else:
+            serializer = AuthTokenSerializer(data=request.data)
+            #serializer = self.serializer_class(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
 
         token = Token.objects.get(user=user).key
 
@@ -601,15 +631,14 @@ class LoginAPIView(ObtainAuthToken):
 class PostAuthenticator:
     """ Only authenticate for post requests """
     def has_permission(self, request, view):
-        return True
         if request.method == 'GET':
             return True
-        elif type(request.user) == CustomUser:
+        if hasattr(request.user, 'is_admin'):
             return request.user.is_admin
         return False
 
 class WorkflowAPIView(APIView):
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
     permission_classes = [PostAuthenticator]
 
     renderer_classes = [rest_framework.renderers.JSONRenderer]
@@ -619,7 +648,8 @@ class WorkflowAPIView(APIView):
         """ GET endpoint to retrieve a workflow
         tries to find a workflow with the given id and version (defaults to most recent)
         If found, the json of the workflow is returned, and if not found a 404 error is
-        returned """
+        returned
+        """
         if version is None:
             query = Workflow.objects.filter(workflow_id=workflow_id, preview=preview).order_by('-version')
         else:
@@ -671,18 +701,22 @@ class WorkflowAPIView(APIView):
         the workflow already exists
         Returns a json object with parameters of the created workflow, including the
         version, api path, time created and author
-        If invalid json is passed in a 400 error is returned """
+        If invalid json is passed in a 400 error is returned
+        """
 
         if version is not None:
             return Response("Modifying versions of workflows is not supported",
                     status=status.HTTP_400_BAD_REQUEST)
 
         jsonobj = request.data
+
+        errors_obj, valid = validation.validateWorkflow(jsonobj)
         try:
             errors_obj, valid = validation.validateWorkflow(jsonobj)
         except:
             errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
             valid = False
+
         schema = self.extract_schema(jsonobj)
 
         if not valid:
@@ -700,13 +734,14 @@ class WorkflowAPIView(APIView):
                 next_version += 1
 
         time_created = datetime.now(timezone.utc)
-        user = None
+        user = request.user if request.user.is_authenticated else None
 
         responseobj = dict(
             version = next_version,
-            apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, "preview" if preview else next_version),
+            apipath = reverse('workflow-version-api', kwargs=dict(workflow_id=workflow_id, version=next_version)),
+            datapath = reverse('workflow-data-api', kwargs=dict(workflow_id=workflow_id, version=version)),
             time_created = str(time_created),
-            created_by = user,
+            created_by = None if user is None else user.username,
         )
         jsonobj['meta'] = responseobj
         jsontxt = json.dumps(jsonobj)
@@ -726,6 +761,12 @@ class WorkflowAPIView(APIView):
 class ValidationAPIView(APIView):
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def post(self, request):
+        """ POST endpoint to validate that a workflow has no errors.
+        This endpoint returns a error object, described in more detail
+        in validation.py. If there are errors in the given workflow,
+        a 400 error is returned, otherwise a 200 status is returned.
+        """
+
         try:
             errors_obj, valid = validation.validateWorkflow(request.data)
         except:
@@ -742,34 +783,52 @@ class ListWorkflowsAPIView(APIView):
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def get(self, request):
         """ GET endpoint that returns a json list of all the workflows with
-        the id, version, creation time and author. """
-        result = []
+        the id, version, creation time and author.
+        """
+        workflows = {}
         for entry in Workflow.objects.all():
-            result.append(dict(
-                workflow_id = entry.workflow_id,
+            workflows.setdefault(entry.workflow_id, dict(
+                workflow_id=entry.workflow_id,
+                apipath = reverse("workflow-api", kwargs=dict(workflow_id=entry.workflow_id)),
+                versions=[],
+            ))
+            workflows[entry.workflow_id]['versions'].append(dict(
                 version = entry.version,
-                preview = entry.preview,
                 time_created = entry.time_created,
                 created_by = None if entry.created_by is None else entry.created_by.get_username(),
+                apipath = reverse("workflow-version-api", kwargs=dict(workflow_id=entry.workflow_id, version=entry.version)),
             ))
-        return Response(result)
+        return Response(list(workflows.values()))
 
 class SaveWorkflowPatientAPIView(APIView):
+    authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def post(self, request, workflow_id, version):
-        """ POST endpoint to upload patient data collected by a workflow """
+        """ POST endpoint to upload patient data collected by a workflow
+        The data is expected to be in json format, with two fields:
+            summary: a dictionary with all valueIDs mapped to the collected value
+            diagnoses: a list of the diagnoses that the app decided on """
+
         query = Workflow.objects.filter(workflow_id=workflow_id, version=version)
         if query.count() == 0:
             return Response({"detail": "Specified workflow does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
         workflow = query[0]
+
+        errors = {}
+        if 'summary' not in request.data:
+            errors['summary'] = 'this field is required'
+        if 'diagnoses' not in request.data:
+            errors['diagnoses'] = 'this field is required'
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
         valid_keys = [field['name'] for field in workflow.schema]
 
         data = {}
-        for key, value in request.data.items():
+        for key, value in request.data['summary']:
             if key in valid_keys:
                 data[key] = value
-
 
         workflow.datamodel().objects.create(patient_uuid=uuid.uuid4(), **data)
 

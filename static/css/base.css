@@ -106,6 +106,33 @@ table tbody:last-child tr:last-child td:last-child {
     transition: border 0.5s ease, background-color 0.5s ease
 }
 
+.center-col {
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#login-card {
+    margin-top: 50px;
+    max-width: 350px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 20px 20px 20px;
+}
+
+#login-card input {
+    display: block;
+    width: calc(100% - 10px);
+    height: 25px;
+    line-height: 15px;
+    padding: 3px;
+    margin-bottom: 15px;
+}
+
+#login-card label {
+    display: block;
+}
+
 #page-navigation {
     margin: 10px 10px;
     padding: 10px 15px;
