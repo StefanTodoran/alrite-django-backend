@@ -429,9 +429,26 @@ def validateWorkflow(rawWorkflow):
 #   ]
 # }
 
-# Given two workflows, returns 
+
+# Given two workflows, returns a json-style object enumerating
+# changes assuming workflowA came before workflowB, formatted like so:
+# {
+#   pages: [
+#     {
+#       title: Boolean status whether the title was changed,
+#       pageID: The string page ID,
+#       status: A string status "removed", "added", "modified, or "unchanged",
+#       changes: Array of strings for each component, empty string if component wasn't
+#                changed and a string description of the change if it was changed.
+#     },
+#     ...
+#   ]
+# }
 def calculateChanges(rawWorkflowA, rawWorkflowB):
-  pass
+  workflowA = Workflow(rawWorkflowA)
+  workflowB = Workflow(rawWorkflowB)
+
+  return workflowA.artifact.getSerializable()
 
 def getBrokenWorkflowErrorArtifact(rawWorkflow):
   return {
