@@ -281,7 +281,7 @@ class Workflow:
   
   # Verifies that the given ID property is unique given a set
   # of possible ID values. Beware: modifies the provided set!
-  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool) -> tuple[bool, str]:
+  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool):# -> tuple[bool, str]:
     if prop in original:
       value = original[prop]
       if value in unusedIDs:
@@ -330,7 +330,7 @@ class Workflow:
     else:
       return True
     
-  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set) -> tuple[str, set]:
+  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set):# -> tuple[str, set]:
     try:
       currPage: Page = self.getPage(targetPage)
     except KeyError:
@@ -448,6 +448,24 @@ class WorkflowArtifact:
 
   def getSerializable(self):
     return json.dumps(self.__dict__, cls=PageEncoder, ensure_ascii=False)
+  
+  def getJsonObj(self):
+    def getobj(obj):
+      if not  hasattr(obj,"__dict__"):
+        return obj
+      result = {}
+      for key, val in obj.__dict__.items():
+          if key.startswith("_"):
+              continue
+          element = []
+          if isinstance(val, list):
+              for item in val:
+                  element.append(getobj(item))
+          else:
+              element = getobj(val)
+          result[key] = element
+      return result
+    return getobj(self)
 
 # =============== #
 # MAIN VALIDATION #
@@ -480,7 +498,7 @@ def calculateChanges(rawWorkflowA, rawWorkflowB):
   workflowA = Workflow(rawWorkflowA)
   workflowB = Workflow(rawWorkflowB)
 
-  return workflowA.computeChanges(workflowB).getSerializable()
+  return workflowA.computeChanges(workflowB).getJsonObj()
 
 def getBrokenWorkflowErrorArtifact(rawWorkflow):
   return {
