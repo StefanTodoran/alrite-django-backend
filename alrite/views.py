@@ -757,13 +757,21 @@ class WorkflowAPIView(APIView):
         query = Workflow.objects.filter(workflow_id=workflow_id)
         if query.count() == 0:
             next_version = 1
+            changes = {}
         else:
             next_version = query.aggregate(models.Max("version"))["version__max"]
             last_entry = query.get(version=next_version)
             if last_entry.preview:
                 last_entry.delete()
+                query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+                if query.count() == 0:
+                    changes = {}
+                else:
+                    changes = validation.calculateChanges(query[0], jsonobj)
             else:
                 next_version += 1
+                last_jsonobj = json.loads(last_entry.json)
+                changes = validation.calculateChanges(last_jsonobj, jsonobj)
 
         time_created = datetime.now(timezone.utc)
         user = request.user if request.user.is_authenticated else None
@@ -786,6 +794,7 @@ class WorkflowAPIView(APIView):
             created_by = user,
             json = jsontxt,
             schema = schema,
+            changes = changes,
         )
         return Response(responseobj)
 
