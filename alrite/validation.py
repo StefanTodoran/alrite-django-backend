@@ -272,7 +272,7 @@ class Workflow:
   
   # Verifies that the given ID property is unique given a set
   # of possible ID values. Beware: modifies the provided set!
-  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool) -> tuple[bool, str]:
+  def ensureUniqueID(self, type: str, original: dict, prop: str, unusedIDs: set, required: bool):# -> tuple[bool, str]:
     if prop in original:
       value = original[prop]
       if value in unusedIDs:
@@ -321,7 +321,7 @@ class Workflow:
     else:
       return True
     
-  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set) -> tuple[str, set]:
+  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set):# -> tuple[str, set]:
     try:
       currPage: Page = self.getPage(targetPage)
     except KeyError:

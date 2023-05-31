@@ -2,12 +2,17 @@ from django.template.defaulttags import url
 from django.urls import path
 from .views import *
 from django.conf import settings
+from django.urls import path, include
 from django.conf.urls.static import static
 from django.views.static import serve
 from rest_framework.authtoken.views import obtain_auth_token
+from django.contrib import admin
 
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
+    path("accounts/", include("django.contrib.auth.urls")),
+
     # path('register/', registration_view),
     # new changes
     # path('apis/login/', obtain_auth_token),
@@ -48,6 +53,14 @@ urlpatterns = [
 
     path('apis/data/<workflow_id>/<version>/', SaveWorkflowPatientAPIView.as_view(), name='workflow-data-api'),
 
+    # API urls used to have alrite/ at the start, so this is for compatibility
+    path('alrite/apis/workflows/<workflow_id>/', WorkflowAPIView.as_view()),
+    path('alrite/apis/workflows/<workflow_id>/<int:version>/', WorkflowAPIView.as_view()),
+    path('alrite/apis/workflows/<workflow_id>/preview/', WorkflowAPIView.as_view(), {"preview": True}),
+    path('alrite/apis/workflows/', ListWorkflowsAPIView.as_view()),
+    path('alrite/apis/validation/', ValidationAPIView.as_view()),
+    path('alrite/apis/data/<workflow_id>/<version>/', SaveWorkflowPatientAPIView.as_view()),
+
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
     path('download_data/', ExportCSVView.as_view(), name="download")
 ]
@@ -58,4 +71,7 @@ if settings.DEBUG:
         path('editor/', EditorView.as_view(), name='editor'),
         path('editor/<path:path>', EditorView.as_view()),
     ])
+
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
