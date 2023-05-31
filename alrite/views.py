@@ -483,7 +483,7 @@ class WorkflowsView(LoginRequiredMixin, TemplateView):
             workflow_list.append(dict(
                 workflow_id = workflow_id,
                 **all_versions[0],
-                all_versions = all_versions[1:],
+                all_versions = all_versions,
             ))
 
         context['workflows'] = workflow_list
@@ -561,6 +561,32 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     page for the backend
     """
     template_name = 'dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DashboardView, self).get_context_data(**kwargs)
+
+        workflows = {}
+        for entry in Workflow.objects.all():
+            num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count()
+            workflows[entry.workflow_id] = workflows.get(entry.workflow_id, 0) + num_patients
+        
+        context['workflows'] = [dict(workflow_id=key, num_patients=value) for key,value in workflows.items()]
+        context['workflow_count'] = len(context['workflows'])
+
+        users = []
+        for user in CustomUser.objects.all():
+            role = 'Admin' if user.is_admin else 'Doctor' if user.is_doctor else 'Nurse' if user.is_nurse else ''
+            users.append(dict(
+                name = user.username if user.first_name + user.last_name == '' else user.first_name + ' ' + user.last_name,
+                role = role,
+                forms = user.forms,
+            ))
+        context['users'] = users
+        context['user_count'] = len(users)
+        
+        return context
+
+
 
 class CliniciansView(LoginRequiredMixin, TemplateView):
     """ View that lists all clinicians along with helpful info

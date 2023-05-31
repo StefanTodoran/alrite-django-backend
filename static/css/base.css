@@ -133,6 +133,10 @@ table tbody:last-child tr:last-child td:last-child {
     display: block;
 }
 
+#dashboard-columns {
+    display: flex;
+}
+
 #page-navigation {
     margin: 10px 10px;
     padding: 10px 15px;
