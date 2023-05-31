@@ -14,8 +14,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <script src="{% static 'js/base.js'%}"> </script>
-
   <header>
     <nav class="card" id="page-navigation">
       <span>
@@ -44,8 +42,10 @@
   <footer>
   </footer>
 
-  <img class="util-button" id="dark-mode-button" style="--label: Change Theme" src="{% static 'alrite-workflow-editor/assets/dark_mode.png'%}" />
-  <img class="util-button hidden" id="light-mode-button" style="--label: Change Theme" src="{% static 'alrite-workflow-editor/assets/light_mode.png'%}" />
+  <img class="util-button hidden" id="dark-mode-button" style="--label: Change Theme" src="{% static 'alrite-workflow-editor/assets/dark_mode.png'%}" />
+  <img class="util-button" id="light-mode-button" style="--label: Change Theme" src="{% static 'alrite-workflow-editor/assets/light_mode.png'%}" />
+
+  <script src="{% static 'js/base.js'%}"> </script>
 </body>
 </html>
 

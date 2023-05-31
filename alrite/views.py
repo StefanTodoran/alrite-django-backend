@@ -12,7 +12,7 @@ from django.shortcuts import render
 from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, FormView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.hashers import make_password
 from django.http import Http404
@@ -728,11 +728,12 @@ class WorkflowAPIView(APIView):
                 next_version += 1
 
         time_created = datetime.now(timezone.utc)
-        user = request.user if type(request.user) == CustomUser else None
+        user = request.user if request.user.is_authenticated else None
 
         responseobj = dict(
             version = next_version,
-            apipath = '/alrite/apis/workflows/{}/{}/'.format(workflow_id, "preview" if preview else next_version),
+            apipath = reverse('workflow-version-api', kwargs=dict(workflow_id=workflow_id, version=next_version)),
+            datapath = reverse('workflow-data-api', kwargs=dict(workflow_id=workflow_id, version=version)),
             time_created = str(time_created),
             created_by = None if user is None else user.username,
         )
@@ -773,18 +774,20 @@ class ListWorkflowsAPIView(APIView):
         """ GET endpoint that returns a json list of all the workflows with
         the id, version, creation time and author.
         """
-        result = []
+        workflows = {}
         for entry in Workflow.objects.all():
-            result.append(dict(
-                workflow_id = entry.workflow_id,
+            workflows.setdefault(entry.workflow_id, dict(
+                workflow_id=entry.workflow_id,
+                apipath = reverse("workflow-api", kwargs=dict(workflow_id=entry.workflow_id)),
+                versions=[],
+            ))
+            workflows[entry.workflow_id]['versions'].append(dict(
                 version = entry.version,
-                preview = entry.preview,
                 time_created = entry.time_created,
                 created_by = None if entry.created_by is None else entry.created_by.get_username(),
-                apipath = '/alrite/apis/workflows/{}/{}/'.format(
-                    entry.workflow_id, "preview" if entry.preview else entry.version),
+                apipath = reverse("workflow-version-api", kwargs=dict(workflow_id=entry.workflow_id, version=entry.version)),
             ))
-        return Response(result)
+        return Response(list(workflows.values()))
 
 class SaveWorkflowPatientAPIView(APIView):
     authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
