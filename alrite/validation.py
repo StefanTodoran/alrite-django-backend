@@ -1,6 +1,7 @@
 import sys
 import json
 import copy
+from typing import Tuple
 
 needsValueID = [
   "MultipleChoice",

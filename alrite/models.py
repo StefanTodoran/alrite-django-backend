@@ -58,7 +58,8 @@ class Workflow(models.Model):
     # collected by the workflow, used to create the database
     # format is [{"name": "...", "type": "..."}, ...], more information is in custom_models.py
     schema = models.JSONField()
-
+    # Stores all parts of the workflow that were changed from the last version.
+    changes = models.JSONField()
     
     workflow_models = {}
 

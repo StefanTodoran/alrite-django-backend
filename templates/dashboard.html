@@ -5,4 +5,45 @@ active
 {% endblock page-nav-dashboard %}
 
 {% block content %}
+<div id="dashboard-columns">
+
+<section class="card">
+  <table>
+    <thead> <tr>
+      <th scope="col" colspan="2">
+        <h3>{{workflow_count}} Workflows</h3>
+      </th>
+    </tr> </thead>
+
+    <tbody>
+      {% for entry in workflows %}
+      <tr>
+        <td>{{ entry.workflow_id|title }}</td>
+        <td>{{ entry.num_patients }} patients</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <table>
+    <thead> <tr>
+      <th score="col" colspan="3">
+        <h3>{{user_count}} Clinicians</h3>
+      </th>
+    </tr> </thead>
+
+    <tbody>
+      {% for entry in users %}
+      <tr>
+        <td>{{ entry.role }}</td>
+        <td>{{ entry.name }}</td>
+        <td>{{ entry.forms }} forms</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+</div>
 {% endblock content %}
