@@ -711,6 +711,12 @@ class WorkflowAPIView(APIView):
         jsonobj = request.data
 
         errors_obj, valid = validation.validateWorkflow(jsonobj)
+        try:
+            errors_obj, valid = validation.validateWorkflow(jsonobj)
+        except:
+            errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
+            valid = False
+
         schema = self.extract_schema(jsonobj)
 
         if not valid:
@@ -760,7 +766,12 @@ class ValidationAPIView(APIView):
         in validation.py. If there are errors in the given workflow,
         a 400 error is returned, otherwise a 200 status is returned.
         """
-        errors_obj, valid = validation.validateWorkflow(request.data)
+
+        try:
+            errors_obj, valid = validation.validateWorkflow(request.data)
+        except:
+            errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
+            valid = False
         
         if valid:
             return Response(errors_obj)
