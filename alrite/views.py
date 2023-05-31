@@ -465,22 +465,28 @@ class WorkflowsView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(WorkflowsView, self).get_context_data(**kwargs)
         workflows = {}
-        for workflow in Workflow.objects.all():
-            if workflow.workflow_id not in workflows or workflow.version > workflows[workflow.workflow_id]["version"]:
+        for entry in Workflow.objects.all():
+            workflows.setdefault(entry.workflow_id, [])
+            
+            num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count()
+            workflows[entry.workflow_id].append(dict(
+                version = entry.version,
+                created_by = entry.created_by,
+                time_created = entry.time_created,
+                num_patients = num_patients,
+                uid = entry.workflow_id + '_' + str(entry.version),
+            ))
+        
+        workflow_list = []
+        for workflow_id, all_versions in workflows.items():
+            all_versions = sorted(all_versions, key=lambda entry: -entry['version'])
+            workflow_list.append(dict(
+                workflow_id = workflow_id,
+                **all_versions[0],
+                all_versions = all_versions[1:],
+            ))
 
-                num_patients = 0 if not workflow.hasmodel() else workflow.datamodel().objects.all().count()
-                if workflow.workflow_id in workflows:
-                    num_patients += workflows[workflow.workflow_id]['num_patients']
-
-                workflows[workflow.workflow_id] = dict(
-                    workflow_id = workflow.workflow_id,
-                    version = workflow.version,
-                    created_by = workflow.created_by,
-                    time_created = workflow.time_created,
-                    num_patients = num_patients,
-                )
-
-        context['workflows'] = list(workflows.values())
+        context['workflows'] = workflow_list
 
         return context
 
