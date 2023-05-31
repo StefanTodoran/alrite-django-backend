@@ -75,6 +75,15 @@ th,
 td {
     padding: 5px;
     border: 1px solid var(--light-border);
+    vertical-align: baseline;
+}
+
+summary {
+    transition: opacity 0.25s ease;
+}
+
+summary:hover {
+    opacity: 0.5;
 }
 
 .do-transition th,
@@ -143,6 +152,12 @@ table tbody:last-child tr:last-child td:last-child {
     width: 50%;
     margin-left: auto;
     margin-right: auto;
+}
+
+.version-link {
+    display: block;
+    opacity: 0.8;
+    font-size: 14px;
 }
 
 #login-card {

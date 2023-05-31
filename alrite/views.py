@@ -517,6 +517,7 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
                     created_by = entry.created_by,
                     time_created = entry.time_created,
                     num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count(),
+                    changes = entry.changes
                 ))
             context['specific_version'] = False
             context['versions'] = versions

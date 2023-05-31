@@ -47,7 +47,10 @@ active
         <td>{{ wflow.created_by }}</td>
         <td>{{ wflow.time_created }}</td>
         <td>{{ wflow.num_patients }}</td>
-        <!-- <td> <a href="">View</a> </td> -->
+        
+        <td>
+          {{ wflow.changes }}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
