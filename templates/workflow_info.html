@@ -52,23 +52,43 @@ active
         <td>{{ wflow.time_created }}</td>
         <td>{{ wflow.num_patients }}</td>
 
-        <td>
-          {% for page in wflow.changes.pages %}
+        {% if wflow.num_changes > 0 %}
+        <td style="width: 40%">
           <details>
             <summary>
-              <p>{{ page.pageID }}</p>
+              {{ wflow.num_changes }} Version Changes
             </summary>
-            {% for key, value in page.items %}
-            {% if key != "pageID" %}
-              {% if value %}
-                <p>{{ value }}</p>
-              {% endif %}
-            {% endif %}
+
+            {% for page in wflow.changes.pages %}
+            <details class="page-changes">
+              <summary>
+                <p>{{ page.pageID }}</p>
+              </summary>
+              {% for key, value in page.items %}
+
+                {% if key == "content" %}
+              
+                  {% for component in value %}
+                    {% if component != "" %}
+                      <p>{{ component }}</p>
+                    {% endif %}
+                  {% endfor %}
+              
+                {% elif key != "pageID" %}
+                  {% if value %}
+                    <p>{{ value }}</p>
+                  {% endif %}
+                {% endif %}
+              
+                {% endfor %}
+            </details>
             {% endfor %}
+
           </details>
-          {% endfor %}
-          <!-- {{ wflow.changes }} -->
         </td>
+        {% else %}
+        <td></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>

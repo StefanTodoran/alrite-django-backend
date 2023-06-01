@@ -511,13 +511,16 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
 
             versions = []
             for entry in query:
+                num_changes = len(entry.changes["pages"]) if len(entry.changes.keys()) != 0 else 0
+
                 versions.append(dict(
                     version = entry.version,
                     preview = entry.preview,
                     created_by = entry.created_by,
                     time_created = entry.time_created,
                     num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count(),
-                    changes = entry.changes
+                    changes = entry.changes,
+                    num_changes = num_changes,
                 ))
             context['specific_version'] = False
             context['versions'] = versions
