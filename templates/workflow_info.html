@@ -12,11 +12,11 @@ active
     (version {{workflow.version}})
     {% endif %}
   </h2>
-  
+
   {% if specific_version %}
-    <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}&version={{workflow.version}}">Open in editor</a>
+  <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}&version={{workflow.version}}">Open in editor</a>
   {% else %}
-    <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}">Open in editor</a>
+  <a href="{% url 'editor' %}?workflow={{workflow.workflow_id}}">Open in editor</a>
   {% endif %}
 
   {% if not specific_version %}
@@ -27,27 +27,68 @@ active
 {% if not specific_version %}
 <section class="card" id="versions">
   <table>
-    <thead> <tr>
-      <th scope="col">Version</th>
-      <th scope="col">Created by</th>
-      <th scope="col">Time created</th>
-      <th scope="col">Number of Patients</th>
-      <th scope="col">Changes</th>
-    </tr> </thead>
+    <thead>
+      <tr>
+        <th scope="col">Version</th>
+        <th scope="col">Created by</th>
+        <th scope="col">Time created</th>
+        <th scope="col">Number of Patients</th>
+        <th scope="col">Changes</th>
+      </tr>
+    </thead>
 
     <tbody>
       {% for wflow in versions %}
       <tr>
         <td>
-          <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=wflow.version %}">{{ wflow.version}}</a>
+          <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=wflow.version %}">
+            {{ wflow.version}}
+          </a>
           {% if wflow.preview %}
-            (preview)
+          (preview)
           {% endif %}
         </td>
         <td>{{ wflow.created_by }}</td>
         <td>{{ wflow.time_created }}</td>
         <td>{{ wflow.num_patients }}</td>
-        <!-- <td> <a href="">View</a> </td> -->
+
+        {% if wflow.num_changes > 0 %}
+        <td style="width: 40%">
+          <details>
+            <summary>
+              {{ wflow.num_changes }} Version Changes
+            </summary>
+
+            {% for page in wflow.changes.pages %}
+            <details class="page-changes">
+              <summary>
+                <p>{{ page.pageID }}</p>
+              </summary>
+              {% for key, value in page.items %}
+
+                {% if key == "content" %}
+              
+                  {% for component in value %}
+                    {% if component != "" %}
+                      <p>{{ component }}</p>
+                    {% endif %}
+                  {% endfor %}
+              
+                {% elif key != "pageID" %}
+                  {% if value %}
+                    <p>{{ value }}</p>
+                  {% endif %}
+                {% endif %}
+              
+                {% endfor %}
+            </details>
+            {% endfor %}
+
+          </details>
+        </td>
+        {% else %}
+        <td></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -68,14 +109,16 @@ active
 
 <section class="card">
   <table>
-    <thead> <tr>
-      <th scope="col">Workflow version</th>
-      <th scope="col">Clinician</th>
-      <th scope="col">Time recorded</th>
-      {% for col_title in column_titles %}
-      <th scope="col">{{col_title}}</th>
-      {% endfor %}
-    </tr> </thead>
+    <thead>
+      <tr>
+        <th scope="col">Workflow version</th>
+        <th scope="col">Clinician</th>
+        <th scope="col">Time recorded</th>
+        {% for col_title in column_titles %}
+        <th scope="col">{{col_title}}</th>
+        {% endfor %}
+      </tr>
+    </thead>
 
     <tbody>
       {% for patient in patients %}

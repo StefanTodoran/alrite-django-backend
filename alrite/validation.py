@@ -94,9 +94,26 @@ def dictCompare(d1, d2):
   
   added = d1_keys - d2_keys
   removed = d2_keys - d1_keys
-  modified = {o : (d1[o], d2[o]) for o in shared_keys if d1[o] != d2[o]}
+  modified = {o for o in shared_keys if d1[o] != d2[o]}
+  # modified = {o : (d1[o], d2[o]) for o in shared_keys if d1[o] != d2[o]}
   same = set(o for o in shared_keys if d1[o] == d2[o])
   return added, removed, modified, same
+
+def listToReadableString(lst):
+  string = ""
+  for elem in lst:
+    string += " " + elem + ","
+  return string[:-1]
+
+def readablePositionString(num):
+  if num == 0:
+    return "1st"
+  elif num == 1:
+    return "2nd"
+  elif num == 2:
+    return "3rd"
+  else:
+    return f"{num + 1}th"
 
 # ================ #
 # WORKFLOW CLASSES #
@@ -138,7 +155,7 @@ class Workflow:
     self.artifact = WorkflowArtifact(workflow)
     
     self.pages: list(Page) = self._extractPageData()  
-    self.indexMap: list(Page) = self._createPageIdentifierMap()
+    self.indexMap: map(str, int) = self._createPageIdentifierMap()
 
     self.pageIDs, self.valueIDs = self._getAllIdentifiers()
 
@@ -195,6 +212,12 @@ class Workflow:
     elif isinstance(target, int):
       pageIndex = target
     return self.pages[pageIndex]
+
+  def hasPage(self, target) -> bool:
+    if isinstance(target, str):
+      return target in self.indexMap
+    elif isinstance(target, int):
+      return target > 0 and target < len(self.pages)
   
   def getArtifactPage(self, target) -> Page:
     if isinstance(target, str):
@@ -383,31 +406,54 @@ class Workflow:
   # VERSION CHANGES #
   # =============== #
 
-  def computeChanges(self, other: "Workflow"):
+  def computeChanges(self, prev: "Workflow"):
     changesArtifact = WorkflowArtifact(self.rawWorkflow, True)
 
     for page in self.pages:
-      otherPage: Page = other.getPage(page.pageID)
       changesPage: Page = changesArtifact.pages[self.indexMap[page.pageID]]
 
-      if otherPage.title != page.title:
-        changesPage.title = True
+      if (prev.hasPage(page.pageID)):
+        prevPage: Page = prev.getPage(page.pageID)
 
-      if otherPage.defaultLink != page.defaultLink:
-        changesPage.defaultLink = True
+        if prevPage.title != page.title:
+          changesPage.title = f"Page title was changed from \"{prevPage.title}\" to \"{page.title}\""
+
+        if prevPage.defaultLink != page.defaultLink:
+          linkTarget = self.getPage(page.defaultLink)
+          prevLinkTarget = prev.getPage(prevPage.defaultLink)
+          changesPage.defaultLink = f"Default link was changed from \"{prevLinkTarget.title}\" ({prevPage.defaultLink}) to \"{linkTarget.title}\" ({page.defaultLink})"
+        
+        if prevPage.isDiagnosisPage != page.isDiagnosisPage:
+          changesPage.isDiagnosisPage = f"Is diagnosis page toggled to " + page.isDiagnosisPage
+
+        for componentIndex in range(len(page.content)):
+          component = page.content[componentIndex]
+
+          if componentIndex < len(prevPage.content):
+            prevComponent = prevPage.content[componentIndex]
+
+            changeBase = f"The {readablePositionString(componentIndex)} component"
+            if component["component"] != prevComponent["component"]:
+              changesPage.content[componentIndex] = changeBase + f" was changed from {component['component']} to {component['component']}."
+            elif component != prevComponent:
+              added, removed, modified, same = dictCompare(component, prevComponent)
+              changesPage.content[componentIndex] = changeBase + f" ({component['component']}) had the following props changed: {listToReadableString(modified)}"
+          
+          else:
+            # The component didn't exist in the previous workflow.
+            changesPage.appendComponent(f"New component of type {component['component']} added")
       
-      if otherPage.isDiagnosisPage != page.isDiagnosisPage:
-        changesPage.isDiagnosisPage = True
+      else:
+        # The page did not exist in the previous workflow.
+        changesPage.pageError = f"New page, containing {len(page.content)} component(s)"
 
-      for componentIndex in range(len(page.content)):
-        component = page.content[componentIndex]
-        otherComponent = otherPage.content[componentIndex]
-        added, removed, modified, same = dictCompare(component, otherComponent)
-
-        if component["component"] != otherComponent["component"]:
-          changesPage.content[componentIndex] = f"The {componentIndex} component was changed from {component['component']} to {component['component']}."
-        elif component != otherComponent:
-          changesPage.content[componentIndex] = f"The {componentIndex} component had the following props changed: {modified}"
+    for prevPage in prev.pages:
+      if not self.hasPage(prevPage.pageID):
+        # If the new workflow removed a page from the previous workflow,
+        # we need a dummy page in the changes artifact enumerating this information.
+        deletedPage = Page(prevPage.pageID)
+        deletedPage.pageError = "Page was removed"
+        changesArtifact.pages.append(deletedPage)
 
     return changesArtifact
 
@@ -445,6 +491,21 @@ class WorkflowArtifact:
           })
         else:
           validatedPage.content.append("")
+
+  def purgeUnchangedPages(self):
+    def _pageWasChanged(page):
+      pageChanged = False
+
+      if page.defaultLink or page.isDiagnosisPage or page.title or page.pageError:
+        pageChanged = True
+
+      for component in page.content:
+        if component != "":
+          pageChanged = True
+
+      return pageChanged
+
+    self.pages = [page for page in self.pages if _pageWasChanged(page)]
 
   def getSerializable(self):
     return json.dumps(self.__dict__, cls=PageEncoder, ensure_ascii=False)
@@ -498,7 +559,10 @@ def calculateChanges(rawWorkflowA, rawWorkflowB):
   workflowA = Workflow(rawWorkflowA)
   workflowB = Workflow(rawWorkflowB)
 
-  return workflowA.computeChanges(workflowB).getJsonObj()
+  changesArtifact = workflowB.computeChanges(workflowA)
+  changesArtifact.purgeUnchangedPages()
+
+  return changesArtifact.getJsonObj()
 
 def getBrokenWorkflowErrorArtifact(rawWorkflow):
   return {

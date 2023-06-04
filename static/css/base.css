@@ -75,6 +75,15 @@ th,
 td {
     padding: 5px;
     border: 1px solid var(--light-border);
+    vertical-align: baseline;
+}
+
+summary {
+    transition: opacity 0.25s ease;
+}
+
+summary:hover {
+    opacity: 0.5;
 }
 
 .do-transition th,
@@ -145,6 +154,33 @@ table tbody:last-child tr:last-child td:last-child {
     margin-right: auto;
 }
 
+.version-link {
+    display: block;
+    opacity: 0.8;
+    font-size: 14px;
+}
+
+.page-changes {
+    margin-left: 1.5em;
+}
+
+.page-changes>summary {
+    margin-left: -0.75em;
+    color: var(--alrite-green)
+}
+
+.page-changes>p {
+    position: relative;
+    margin: 0 0 0 1em;
+}
+
+.page-changes>p::before {
+    content: "> ";
+    opacity: 0.25;
+    position: absolute;
+    left: -1em;
+}
+
 #login-card {
     margin-top: 50px;
     max-width: 350px;
@@ -178,6 +214,7 @@ table tbody:last-child tr:last-child td:last-child {
 
 #dashboard-columns {
     display: flex;
+    align-items: flex-start;
 }
 
 #page-navigation {
@@ -223,11 +260,12 @@ h1.logo {
 }
 
 .util-button {
-    position: absolute;
+    position: fixed;
     width: 40px;
     height: 40px;
     bottom: 20px;
     right: 20px;
+    background-color: var(--near-black);
 
     cursor: pointer;
     --bounce: cubic-bezier(.47, 1.64, .41, 1);

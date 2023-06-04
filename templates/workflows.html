@@ -13,13 +13,15 @@ active
 
 <section class="card" id="workflow-table">
   <table>
-    <thead> <tr>
-      <th scope="col">Workflow ID</th>
-      <th scope="col">Current version</th>
-      <th scope="col">Created by</th>
-      <th scope="col">Time created</th>
-      <th scope="col">Number of Patients</th>
-    </tr> </thead>
+    <thead>
+      <tr>
+        <th scope="col">Workflow ID</th>
+        <th scope="col">Current version</th>
+        <th scope="col">Created by</th>
+        <th scope="col">Time created</th>
+        <th scope="col">Number of Patients</th>
+      </tr>
+    </thead>
 
     {% for workflow in workflows %}
     <tbody>
@@ -29,35 +31,20 @@ active
             <summary>
               <a href="{% url 'workflow-info' workflow_id=workflow.workflow_id %}">{{ workflow.workflow_id }}</a>
             </summary>
+            {% for version in workflow.all_versions %}
+            <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=version.version %}"
+              class="version-link">
+              Version {{version.version}}
+            </a>
+            {% endfor %}
           </details>
         </td>
+
         <td>{{ workflow.version }}</td>
         <td>{{ workflow.created_by }}</td>
         <td>{{ workflow.time_created }}</td>
         <td>{{ workflow.num_patients }}</td>
       </tr>
-    </tbody>
-
-    <tbody id="extra_versions_{{workflow.uid}}" style="visibility: collapse">
-      {% for version in workflow.all_versions %}
-      <tr>
-        <td>
-          <a href="{% url 'workflow-info-version' workflow_id=workflow.workflow_id version=version.version %}">
-            {{ workflow.workflow_id }} (v{{version.version}})
-          </a>
-        </td>
-        <td>{{ version.version }}</td>
-        <td>{{ version.created_by }}</td>
-        <td>{{ version.time_created }}</td>
-        <td>{{ version.num_patients }}</td>
-      </tr>
-      {% endfor %}
-
-      <script>
-        document.getElementById("details_{{workflow.uid}}").addEventListener('toggle', (event) => {
-          document.getElementById("extra_versions_{{workflow.uid}}").style.visibility = event.target.open ? 'visible' : 'collapse'
-        })
-      </script>
     </tbody>
     {% endfor %}
 
