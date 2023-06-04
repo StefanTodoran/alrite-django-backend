@@ -18,7 +18,7 @@ def schema_to_model(name, schema):
     for field_params in schema:
         model_class = getattr(models, field_params['type'])
         #model_class = field_types[field_params['type']]
-        attrs[field_params['name']] = model_class(**field_params.get('params', {}))
+        attrs[field_params['name']] = model_class(null=True, **field_params.get('params', {}))
 
     model = type(name, (AbstractPatient,), attrs)
     return model
@@ -32,9 +32,8 @@ def register_model(model):
     #admin.site.register(model, {})
     pass
 
-def has_table(entry):
-    modelname = 'Workflow_{}_{}'.format(entry.workflow_id, entry.version)
-    return modelname in connection.introspection.table_names()
+def has_table(model):
+    return model._meta.db_table in connection.introspection.table_names()
 
 def create_model(model):
     # test if table has been created

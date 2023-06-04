@@ -21,6 +21,9 @@ urlpatterns = [
     path('workflows/<workflow_id>/', WorkflowInfoView.as_view(), name='workflow-info'),
     path('workflows/<workflow_id>/<int:version>/', WorkflowInfoView.as_view(), name='workflow-info-version'),
 
+    path('workflows/<workflow_id>/data/', ExportWorkflowCSVView.as_view(), name="download"),
+    path('workflows/<workflow_id>/<int:version>/data/', ExportWorkflowCSVView.as_view(), name="download"),
+
     path('apis/login/', login_api),
     path('registration/', RegisterView.as_view(), name='register'),
     path('clinicians/', CliniciansView.as_view(), name='clinicians'),
@@ -62,7 +65,7 @@ urlpatterns = [
     path('alrite/apis/data/<workflow_id>/<version>/', SaveWorkflowPatientAPIView.as_view()),
 
     #path('apis/download_data/', ExportCSVAPIView.as_view()),
-    path('download_data/', ExportCSVView.as_view(), name="download")
+    #path('download_data/', ExportCSVView.as_view(), name="download")
 ]
 
 if settings.DEBUG:

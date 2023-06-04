@@ -468,12 +468,11 @@ class WorkflowsView(LoginRequiredMixin, TemplateView):
         for entry in Workflow.objects.all():
             workflows.setdefault(entry.workflow_id, [])
             
-            num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count()
             workflows[entry.workflow_id].append(dict(
                 version = entry.version,
                 created_by = entry.created_by,
                 time_created = entry.time_created,
-                num_patients = num_patients,
+                num_patients = entry.datamodel.num_patients(),
                 uid = entry.workflow_id + '_' + str(entry.version),
             ))
         
@@ -516,7 +515,7 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
                     preview = entry.preview,
                     created_by = entry.created_by,
                     time_created = entry.time_created,
-                    num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count(),
+                    num_patients = entry.datamodel.num_patients(),
                 ))
             context['specific_version'] = False
             context['versions'] = versions
@@ -529,23 +528,33 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
             context['specific_version'] = True
 
         patients = []
-        if workflow.hasmodel():
-            for patient in workflow.datamodel().objects.all()[:50]:
-                values = []
-                for col in workflow.schema:
-                    values.append(getattr(patient, col['name']))
-                patients.append(dict(
-                    workflow_version = patient.workflow_version,
-                    clinician = patient.clinician,
-                    time_submitted = patient.time_submitted,
-                    values = values,
-                ))
+        columns = []
+        for entry in query:
+            insert_index = 0
+            for newcol in entry.schema:
+                name = newcol['name']
+                if name in columns:
+                    insert_index = columns.index(name)+1
+                else:
+                    columns.insert(insert_index, name)
+                    insert_index += 1
+
+        print (columns)
+
+        for entry in query:
+            if entry.datamodel.hastable():
+                for patient in entry.datamodel.objects.all():
+                    values = [(getattr(patient, col) if hasattr(patient, col) else None) for col in columns]
+                    patients.append(dict(
+                        workflow_version = entry.version,
+                        clinician = patient.clinician,
+                        time_submitted = patient.time_submitted,
+                        values = values,
+                    ))
+
         context['patients'] = patients
 
-        column_titles = []
-        for col in workflow.schema:
-            column_titles.append(col['name'].replace('-', ' ').replace('_', ' ').capitalize())
-        context['column_titles'] = column_titles
+        context['column_titles'] = columns
 
         context['workflow'] = dict(
             workflow_id = workflow.workflow_id,
@@ -567,7 +576,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         workflows = {}
         for entry in Workflow.objects.all():
-            num_patients = 0 if not entry.hasmodel() else entry.datamodel().objects.all().count()
+            num_patients = entry.datamodel.num_patients(),
             workflows[entry.workflow_id] = workflows.get(entry.workflow_id, 0) + num_patients
         
         context['workflows'] = [dict(workflow_id=key, num_patients=value) for key,value in workflows.items()]
@@ -619,6 +628,37 @@ class EditorView(LoginRequiredMixin, View):
     def get(self, request, workflow_id=None, path="index.html"):
         return staticfiles.views.serve(request, "alrite-workflow-editor/" + path)
 
+class ExportWorkflowCSVView(LoginRequiredMixin, View):
+    """ View that exports the data stored in a workflow as csv """
+    def get(self, request, workflow_id, version=None):
+        
+        query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+
+        if version is not None:
+            query = query.filter(version=version)
+
+        columns = ['clinician', 'patient_uuid', 'app_version', 'time_submitted']
+        for entry in query:
+            insert_index = 4
+            for newcol in entry.schema:
+                name = newcol['name']
+                if name in columns:
+                    insert_index = columns.index(name)+1
+                else:
+                    columns.insert(insert_index, name)
+                    insert_index += 1
+
+        print (columns)
+        response = HttpResponse(content_type='text/csv')
+        csvfile = csv.writer(response)
+        csvfile.writerow(columns)
+
+        for entry in query:
+            if entry.datamodel.hastable():
+                for patient in entry.datamodel.objects.all():
+                    csvfile.writerow([(getattr(patient, col) if hasattr(patient, col) else None) for col in columns])
+        
+        return response
 
 
 # API Views
@@ -861,21 +901,21 @@ class SaveWorkflowPatientAPIView(APIView):
         errors = {}
         if 'summary' not in request.data:
             errors['summary'] = 'this field is required'
-        if 'diagnoses' not in request.data:
-            errors['diagnoses'] = 'this field is required'
+        #if 'diagnoses' not in request.data:
+            #errors['diagnoses'] = 'this field is required'
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         valid_keys = [field['name'] for field in workflow.schema]
 
         data = {}
-        for key, value in request.data['summary']:
+        for key, value in request.data['summary'].items():
             if key in valid_keys:
                 data[key] = value
 
-        workflow.datamodel().objects.create(patient_uuid=uuid.uuid4(), **data)
+        workflow.datamodel.maketable()
+        workflow.datamodel.objects.create(patient_uuid=uuid.uuid4(), **data)
 
         return Response({"data": "sumbittem"})
-
 
 

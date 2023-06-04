@@ -63,19 +63,14 @@ class Workflow(models.Model):
     
     workflow_models = {}
 
-    def datamodel(self):
-        if self.id not in self.workflow_models:
-            print ("registering model")
+    def __init__(self, *args, **kwargs):
+        super(Workflow, self).__init__(*args, **kwargs)
+        if self.id in self.workflow_models:
+            self.datamodel = self.workflow_models[self.id]
+        else:
             from . import custom_models
-            model = custom_models.workflow_to_model(self)
-            custom_models.register_model(model)
-            custom_models.create_model(model)
-            self.workflow_models[self.id] = model
-        return self.workflow_models[self.id]
-
-    def hasmodel(self):
-        from . import custom_models
-        return self.id in self.workflow_models or custom_models.has_table(self)
+            self.datamodel = custom_models.workflow_to_model(self)
+            self.workflow_models[self.id] = self.datamodel
 
     def __str__(self):
         return "{} v{} (created {} by {})".format(
@@ -92,8 +87,26 @@ class AbstractPatient(models.Model):
     time_submitted = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return "Patient {} (Collected {} by {}, workflow {} v{})".format(
-            self.patient_uuid, self.time_submitted, self.clinician, self.workflow_id, self.workflow_version)
+        return "Patient {} (Collected {} by {})".format(
+            self.patient_uuid, self.time_submitted, self.clinician)
+    
+    @classmethod
+    def hastable(cls):
+        from . import custom_models
+        return custom_models.has_table(cls)
+
+    @classmethod
+    def maketable(cls):
+        from . import custom_models
+        if not cls.hastable():
+            custom_models.register_model(cls)
+            custom_models.create_model(cls)
+
+    @classmethod
+    def num_patients(cls):
+        if cls.hastable():
+            return cls.objects.all().count()
+        return 0
 
     class Meta:
         abstract = True
