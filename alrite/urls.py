@@ -13,6 +13,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("accounts/", include("django.contrib.auth.urls")),
 
+    path('invite/create/', CreateInviteView.as_view(), name='create-invite'),
+    path('invite/<invitecode>/', AcceptInviteView.as_view(), name='accept-invite'),
+
     # path('register/', registration_view),
     # new changes
     # path('apis/login/', obtain_auth_token),

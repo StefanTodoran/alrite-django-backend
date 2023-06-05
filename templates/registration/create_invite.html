@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <section id="login-card" class="card">
+    {% if success %}
+
+    <h1 class="page-title">
+      Success, share the link below with the clinician you want to invite
+    </h1>
+    <a href="{{url}}">{{url}}</a>
+
+    {% else %}
+
+    <h1 class="page-title">
+      Invitation to create an account
+    </h1>
+    <form method="post">
+      {% csrf_token %}
+      {{ form }}
+      <button type="submit">Create invitation</button>
+    </form>
+
+    {% endif %}
+  </section>
+{% endblock content %}

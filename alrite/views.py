@@ -3,6 +3,8 @@ import datetime
 from datetime import timedelta, datetime, timezone
 import codecs
 import uuid
+import base64
+import secrets
 
 from django.shortcuts import render
 from .serializers import *
@@ -580,7 +582,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         workflows = {}
         for entry in Workflow.objects.all():
-            num_patients = entry.datamodel.num_patients(),
+            num_patients = entry.datamodel.num_patients()
             workflows[entry.workflow_id] = workflows.get(entry.workflow_id, 0) + num_patients
         
         context['workflows'] = [dict(workflow_id=key, num_patients=value) for key,value in workflows.items()]
@@ -588,6 +590,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         users = []
         for user in CustomUser.objects.all():
+            if not user.has_usable_password():
+                continue
+
             role = 'Admin' if user.is_admin else 'Doctor' if user.is_doctor else 'Nurse' if user.is_nurse else ''
             users.append(dict(
                 name = user.username if user.first_name + user.last_name == '' else user.first_name + ' ' + user.last_name,
@@ -611,6 +616,9 @@ class CliniciansView(LoginRequiredMixin, TemplateView):
         
         users = []
         for user in CustomUser.objects.all():
+            if not user.has_usable_password():
+                continue
+
             role = 'Admin' if user.is_admin else 'Doctor' if user.is_doctor else 'Nurse' if user.is_nurse else ''
             users.append(dict(
                 username = user.username,
@@ -624,6 +632,80 @@ class CliniciansView(LoginRequiredMixin, TemplateView):
         
         return context
 
+
+class CreateInviteView(LoginRequiredMixin, TemplateView):
+    """ View that deals with invitations of clinicians """
+    template_name = "registration/create_invite.html"
+
+    def post(self, request, **kwargs):
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        context = super(CreateInviteView, self).get_context_data(**kwargs)
+
+        if self.request.method == "POST":
+            form = CreateInviteForm(self.request.POST)
+
+            if form.is_valid():
+                token = base64.b32encode(secrets.token_bytes(10)).decode()
+                print (token)
+                CustomUser.objects.create_user(
+                    username = token,
+                    is_staff = form.cleaned_data['is_admin'],
+                    is_superuser = form.cleaned_data['is_admin'],
+                    **form.cleaned_data
+                )
+
+                context['success'] = True
+                context['url'] = self.request.build_absolute_uri(reverse("accept-invite", kwargs=dict(invitecode=token)))
+                return context
+        else:
+            form = CreateInviteForm()
+        
+        if self.request.user.is_doctor or self.request.user.is_nurse:
+            form.fields['is_admin'].disabled = True
+
+        context['form'] = form
+        return context
+
+
+class AcceptInviteView(TemplateView):
+    template_name = "registration/accept_invite.html"
+    
+    def post(self, request, **kwargs):
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
+
+    def get_context_data(self, invitecode, **kwargs):
+        context = super(AcceptInviteView, self).get_context_data(**kwargs)
+        
+        query = CustomUser.objects.filter(username=invitecode.upper())
+        if query.count() == 0:
+            raise Http404("Invalid invite link")
+
+        user = query[0]
+        if user.has_usable_password():
+            raise Http404("Invalid invite link")
+        
+        if self.request.method == "POST":
+            form = AcceptInviteForm(self.request.POST)
+
+            if form.is_valid():
+                data = form.cleaned_data
+                user.set_password(data.pop('password'))
+                for key, val in data.items():
+                    setattr(user, key, val)
+                user.save()
+
+                context['success'] = True
+                return context
+        else:
+            form = AcceptInviteForm()
+
+        context['form'] = form
+
+        return context
 
 class EditorView(LoginRequiredMixin, View):
     """ View for development that hosts the workflow

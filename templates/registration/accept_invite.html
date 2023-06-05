@@ -6,16 +6,24 @@
 
 {% block content %}
   <section id="login-card" class="card">
+    {% if success %}
+
     <h1 class="page-title">
-      Welcome
+      Success, click below to log in with the username and password you set.
     </h1>
-    <h2 class="page-title">
-      Enter Your Credentials
-    </h2>
+    <a href="{% url 'login' %}">Login</a>
+
+    {% else %}
+
+    <h1 class="page-title">
+      Create an account
+    </h1>
     <form method="post">
       {% csrf_token %}
       {{ form }}
-      <button type="submit">Login</button>
+      <button type="submit">Create account</button>
     </form>
+
+    {% endif %}
   </section>
 {% endblock content %}
