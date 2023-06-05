@@ -970,7 +970,7 @@ class ListWorkflowsAPIView(APIView):
         return Response(list(workflows.values()))
 
 class SaveWorkflowPatientAPIView(APIView):
-    authentication_classes = [authentication.TokenAuthentication, authentication.SessionAuthentication]
+    authentication_classes = [authentication.TokenAuthentication]
     renderer_classes = [rest_framework.renderers.JSONRenderer]
     def post(self, request, workflow_id, version):
         """ POST endpoint to upload patient data collected by a workflow
