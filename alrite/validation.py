@@ -353,11 +353,15 @@ class Workflow:
     else:
       return True
     
-  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set):# -> tuple[str, set]:
+  def searchForUnusedAndLoopsHelper(self, targetPage: str, visitedPages: set, noneOkay: bool = False):# -> tuple[str, set]:
     try:
       currPage: Page = self.getPage(targetPage)
     except KeyError:
-      return "None or invalid pageID provided!", visitedPages
+      if not noneOkay:
+        self.valid = False
+        return "None or invalid pageID provided!", visitedPages
+      else:
+        return None, visitedPages
     
     seenPages = set(visitedPages)
     visitedPages = set(visitedPages)
@@ -385,7 +389,7 @@ class Workflow:
             for choiceIndex in range(len(originalComponent["choices"])):
               choice = originalComponent["choices"][choiceIndex]
 
-              error, visited = self.searchForUnusedAndLoopsHelper(choice["link"], visitedPages)
+              error, visited = self.searchForUnusedAndLoopsHelper(choice["link"], visitedPages, True)
               if error != None: artifactComponent["choices"][choiceIndex] = error
               seenPages.update(visited)
           else:
