@@ -933,12 +933,11 @@ class ValidationAPIView(APIView):
         a 400 error is returned, otherwise a 200 status is returned.
         """
 
-        # try:
-        if True:
+        try:
             errors_obj, valid = validation.validateWorkflow(request.data)
-        # except:
-        #     errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
-        #     valid = False
+        except:
+            errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
+            valid = False
         
         # print(validation.calculateChanges(request.data, request.data))
         
