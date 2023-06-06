@@ -265,7 +265,7 @@ h1.logo {
     height: 40px;
     bottom: 20px;
     right: 20px;
-    background-color: var(--near-black);
+    background-color: white;
 
     cursor: pointer;
     --bounce: cubic-bezier(.47, 1.64, .41, 1);
@@ -274,6 +274,7 @@ h1.logo {
         opacity 0.5s var(--bounce),
         border 0.5s var(--bounce),
         width 0.5s var(--bounce),
+        background-color 0.5s var(--no-over-bounce),
         height 0.5s var(--no-over-bounce);
     border: 2px solid transparent;
     border-radius: 8px;
@@ -308,6 +309,10 @@ body.darkMode {
 .darkMode h2,
 .darkMode h3 {
     color: white;
+}
+
+.darkMode .util-button {
+    background-color: var(--near-black);
 }
 
 .hidden {
