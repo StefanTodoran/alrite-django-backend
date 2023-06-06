@@ -445,6 +445,8 @@ def convertListToDict2(li):
 
 
 
+    
+
 
 
 
@@ -822,6 +824,14 @@ class LoginAPIView(APIView):
             },
             'token': token
         })
+
+def debug_reupload_workflows(request):
+    for entry in Workflow.objects.all():
+        workflow_obj = json.loads(entry.json)
+        valueIDs = WorkflowAPIView.extract_valueIDs(None, workflow_obj)
+        entry.set_valueIDs(valueIDs)
+
+    return HttpResponse("Success!")
 
 class PostAuthenticator:
     """ Only authenticate for post requests """

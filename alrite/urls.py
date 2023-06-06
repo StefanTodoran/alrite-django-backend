@@ -78,6 +78,8 @@ if settings.DEBUG:
         # hack until production to host workflow
         path('editor/', EditorView.as_view(), name='editor'),
         path('editor/<path:path>', EditorView.as_view()),
+
+        path('debug/reupload_workflows/', debug_reupload_workflows),
     ])
 
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
