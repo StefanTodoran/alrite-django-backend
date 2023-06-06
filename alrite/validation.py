@@ -297,9 +297,18 @@ class Workflow:
 
     self.valid = self.valid and self.isValidID(originalComponent, artifactComponent, "targetValueID", self.valueIDs, False)
 
-    for prop, required in componentProps[componentType].items():
-      if required and prop not in originalComponent:
-        artifactComponent[prop] = f"Component is missing {prop} property!"
+    if "choices" in originalComponent:
+      for choiceIndex in range(len(originalComponent["choices"])):
+          originalChoice = originalComponent["choices"][choiceIndex]
+          artifactChoice = artifactComponent["choices"][choiceIndex]
+          self.ensureRequiredProps(originalChoice, artifactChoice, "Choice")
+
+    self.ensureRequiredProps(originalComponent, artifactComponent, componentType)
+
+  def ensureRequiredProps(self, original, artifact, type):
+    for prop, required in componentProps[type].items():
+      if required and (prop not in original or original[prop] == ""):
+        artifact[prop] = f"Component is missing {prop} property!"
         self.valid = False
   
   # Verifies that the given ID property is unique given a set
@@ -390,7 +399,7 @@ class Workflow:
               choice = originalComponent["choices"][choiceIndex]
 
               error, visited = self.searchForUnusedAndLoopsHelper(choice["link"], visitedPages, True)
-              if error != None: artifactComponent["choices"][choiceIndex] = error
+              if error != None: artifactComponent["choices"][choiceIndex]["link"] = error
               seenPages.update(visited)
           else:
             for prop in componentProps[componentType]:
@@ -443,7 +452,7 @@ class Workflow:
 
             changeBase = f"The {readablePositionString(componentIndex)} component"
             if component["component"] != prevComponent["component"]:
-              changesPage.content[componentIndex] = changeBase + f" was changed from {component['component']} to {component['component']}."
+              changesPage.content[componentIndex] = changeBase + f" was changed from {prevComponent['component']} to {component['component']}."
             elif component != prevComponent:
               added, removed, modified, same = dictCompare(component, prevComponent)
               changesPage.content[componentIndex] = changeBase + f" ({component['component']}) had the following props changed: {listToReadableString(modified)}"
@@ -498,7 +507,11 @@ class WorkflowArtifact:
           validatedComponent = { "component": originalComponent["component"] }
           
           if originalComponent["component"] == "MultipleChoice":
-            validatedComponent["choices"] = [None] * len(originalComponent["choices"])
+            validatedComponent["choices"] = [{
+              "text": None,
+              "value": None,
+              "link": None,
+            } for _ in range(len(originalComponent["choices"]))]
 
           validatedPage.content.append(validatedComponent)
         else:
@@ -580,8 +593,10 @@ def getBrokenWorkflowErrorArtifact(rawWorkflow):
   return {
     "pages": [{
       "pageID": rawWorkflow["pages"][0]["pageID"],
-      "pageError": "Catastrophic error: could not parse workflow. Contact system administrator."
-    }]
+      "pageError": "Catastrophic error: could not parse workflow. Contact system administrator.",
+      "content": [],
+    }],
+    "status": "Catastrophic Error",
   }
 
 # ============== #

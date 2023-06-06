@@ -933,6 +933,9 @@ class ValidationAPIView(APIView):
         a 400 error is returned, otherwise a 200 status is returned.
         """
 
+        # If you are getting "catastrophic error" on the editor
+        # it means the except here is triggering. Try commenting the
+        # try except out to see the error and fix it in validateWorkflow.
         try:
             errors_obj, valid = validation.validateWorkflow(request.data)
         except:
