@@ -77,7 +77,6 @@ class RegisterView(CreateView):
 
 @api_view(['POST'])
 def login_api(request):
-    print (request.user)
     serializer = AuthTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
@@ -295,7 +294,6 @@ class SavePatientDataView(APIView):
     def post(self, request):
 
         file = request.FILES.get('patient')
-        print(file)
 
         user = self.request.user
 
@@ -545,8 +543,6 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
                     columns.insert(insert_index, name)
                     insert_index += 1
 
-        print (columns)
-
         for entry in query:
             for patient in entry.get_patients():
                 data = patient.get_data()
@@ -656,7 +652,6 @@ class CreateInviteView(LoginRequiredMixin, TemplateView):
 
             if form.is_valid():
                 token = base64.b32encode(secrets.token_bytes(10)).decode()
-                print (token)
                 CustomUser.objects.create_user(
                     username = token,
                     is_staff = form.cleaned_data['is_admin'],
@@ -775,7 +770,6 @@ class PatientsView(LoginRequiredMixin, TemplateView):
             columns = [valueID.name for valueID in patient.workflow.get_valueIDs()]
             data = patient.get_data()
             datalist = [(name, data[name]) for name in columns if name in data]
-            print (columns, data, datalist)
             patients.append(dict(
                 id = patient.id,
                 clinician = patient.clinician,
