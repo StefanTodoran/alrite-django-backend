@@ -585,7 +585,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             workflows[entry.workflow_id] = workflows.get(entry.workflow_id, 0) + entry.get_patients().count()
         
         context['workflows'] = [dict(workflow_id=key, num_patients=value) for key,value in workflows.items()]
-        context['workflow_count'] = len(context['workflows'])
 
         users = []
         for user in CustomUser.objects.all():
@@ -599,7 +598,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 forms = user.forms,
             ))
         context['users'] = users
-        context['user_count'] = len(users)
+
+        patients = []
+        for patient in WorkflowPatient.objects.all():
+            patients.append(dict(
+                id = patient.id,
+                workflow_id = patient.workflow.workflow_id,
+                workflow_version = patient.workflow.version,
+                entry_count = len(patient.get_data()),
+            ))
+        context['patients'] = patients
         
         return context
 
@@ -715,16 +723,19 @@ class EditorView(LoginRequiredMixin, View):
 
 class ExportWorkflowCSVView(LoginRequiredMixin, View):
     """ View that exports the data stored in a workflow as csv """
-    def get(self, request, workflow_id, version=None):
+    def get(self, request, workflow_id=None, version=None):
         
-        query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+        if workflow_id is None:
+            query = Workflow.objects.all()
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+            if version is not None:
+                query = query.filter(version=version)
 
-        if version is not None:
-            query = query.filter(version=version)
-
-        columns = ['clinician', 'patient_uuid', 'app_version', 'time_submitted']
+        header_columns = ['patient_id', 'clinician', 'workflow_id', 'workflow_version', 'app_version', 'time_submitted']
+        columns = []
         for entry in query:
-            insert_index = 4
+            insert_index = 0
             for newcol in entry.get_valueIDs():
                 name = newcol.name
                 if name in columns:
@@ -733,17 +744,50 @@ class ExportWorkflowCSVView(LoginRequiredMixin, View):
                     columns.insert(insert_index, name)
                     insert_index += 1
 
-        print (columns)
         response = HttpResponse(content_type='text/csv')
         csvfile = csv.writer(response)
-        csvfile.writerow(columns)
+        csvfile.writerow(header_columns + columns)
 
         for entry in query:
             for patient in entry.get_patients():
-                values = [data.get(col, None) for col in columns]
+                data = patient.get_data()
+                values = [
+                    patient.id,
+                    patient.clinician,
+                    patient.workflow.workflow_id,
+                    patient.workflow.version,
+                    patient.app_version,
+                    patient.time_submitted,
+                ]
+                values = values + [data.get(col, None) for col in columns]
                 csvfile.writerow(values)
         
         return response
+
+class PatientsView(LoginRequiredMixin, TemplateView):
+    template_name = "patients.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(PatientsView, self).get_context_data(**kwargs)
+
+        patients = []
+        for patient in WorkflowPatient.objects.all():
+            columns = [valueID.name for valueID in patient.workflow.get_valueIDs()]
+            data = patient.get_data()
+            datalist = [(name, data[name]) for name in columns if name in data]
+            print (columns, data, datalist)
+            patients.append(dict(
+                id = patient.id,
+                clinician = patient.clinician,
+                workflow_id = patient.workflow.workflow_id,
+                workflow_version = patient.workflow.version,
+                time_submitted = patient.time_submitted,
+                data = datalist,
+            ))
+
+        context['patients'] = patients
+
+        return context
 
 
 # API Views
@@ -832,7 +876,7 @@ class WorkflowAPIView(APIView):
             'numeric': FloatValue,
         }
         
-        valueIDs = {}
+        valueIDs = []
         for page in workflow['pages']:
             for component in page['content']:
                 if 'valueID' in component:
@@ -842,7 +886,7 @@ class WorkflowAPIView(APIView):
                     elif component['component'] in default_types:
                         typename = default_types[component['component']]
 
-                    valueIDs[component['valueID']] = mappings.get(typename, CharValue)
+                    valueIDs.append((component['valueID'], mappings.get(typename, CharValue)))
 
         return valueIDs
 

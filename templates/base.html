@@ -27,7 +27,7 @@
         <a class="page-nav-item" href="{% url 'editor' %}">Editor</a>
         <a class="page-nav-item {% block page-nav-workflows %}{% endblock page-nav-workflows %}" href="{% url 'workflows' %}">Workflows</a>
         <a class="page-nav-item {% block page-nav-clinicians %}{% endblock page-nav-clinicians %}" href="{% url 'clinicians' %}">Clinicians</a>
-        <a class="page-nav-item {% block page-nav-patients %}{% endblock page-nav-patients %}" href="">Patients</a>
+        <a class="page-nav-item {% block page-nav-patients %}{% endblock page-nav-patients %}" href="{% url 'patients' %}">Patients</a>
         <a class="page-nav-item" href="{% url 'logout' %}">Log out</a>
         {% endblock page-nav-links %}
       </span>

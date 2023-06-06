@@ -59,7 +59,7 @@ class Workflow(models.Model):
 
     def set_valueIDs(self, valueIDs):
         ValueID.objects.filter(workflow=self).delete()
-        for name, typeobj in valueIDs.items():
+        for name, typeobj in valueIDs:
             ValueID.objects.create(
                 workflow = self,
                 name = name,

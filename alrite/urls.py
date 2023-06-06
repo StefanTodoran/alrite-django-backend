@@ -24,12 +24,14 @@ urlpatterns = [
     path('workflows/<workflow_id>/', WorkflowInfoView.as_view(), name='workflow-info'),
     path('workflows/<workflow_id>/<int:version>/', WorkflowInfoView.as_view(), name='workflow-info-version'),
 
-    path('workflows/<workflow_id>/data/', ExportWorkflowCSVView.as_view(), name="download"),
-    path('workflows/<workflow_id>/<int:version>/data/', ExportWorkflowCSVView.as_view(), name="download"),
+    path('csvdata/', ExportWorkflowCSVView.as_view(), name="download"),
+    path('csvdata/<workflow_id>/', ExportWorkflowCSVView.as_view(), name="download-workflow"),
+    path('csvdata/<workflow_id>/<int:version>/', ExportWorkflowCSVView.as_view(), name="download-workflow-version"),
 
     path('apis/login/', login_api),
     path('registration/', RegisterView.as_view(), name='register'),
     path('clinicians/', CliniciansView.as_view(), name='clinicians'),
+    path('patients/', PatientsView.as_view(), name='patients'),
     path('app_usage/', AppUsageView.as_view(), name='app_usage'),
     path('apis/saveData/', SavePatientDataView.as_view()),
     path('apis/saveCounter/', SaveCountDataView.as_view()),
