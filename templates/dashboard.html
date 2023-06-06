@@ -11,7 +11,7 @@ active
   <table>
     <thead> <tr>
       <th scope="col" colspan="2">
-        <h3>{{workflow_count}} Workflows</h3>
+        <h3>{{workflows|length}} Workflows</h3>
       </th>
     </tr> </thead>
 
@@ -30,7 +30,7 @@ active
   <table>
     <thead> <tr>
       <th score="col" colspan="3">
-        <h3>{{user_count}} Clinicians</h3>
+        <h3>{{users|length}} Clinicians</h3>
       </th>
     </tr> </thead>
 
@@ -45,5 +45,26 @@ active
     </tbody>
   </table>
 </section>
+
+<section class="card">
+  <table>
+    <thead> <tr>
+      <th score="col" colspan="3">
+        <h3>{{patients|length}} Patients</h3>
+      </th>
+    </tr> </thead>
+
+    <tbody>
+      {% for entry in patients %}
+      <tr>
+        <td>Patient {{ entry.id }}</td>
+        <td>Workflow {{ entry.workflow_id }} v{{ entry.workflow_version }}</td>
+        <td>{{ entry.entry_count }} entries</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
 </div>
+
 {% endblock content %}

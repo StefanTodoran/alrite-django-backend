@@ -1,0 +1,54 @@
+{% extends 'base.html'%}
+
+{% block page-nav-patients %}
+active
+{% endblock page-nav-patients %}
+
+{% block content %}
+<section>
+  <h2 class="page-title" style="margin-bottom: 0;">
+    All Patients
+  </h2>
+  <a href="{% url 'download' %}">Download all patients</a>
+</section>
+
+<section class="card">
+  <table>
+    <thead> <tr>
+      <th scope="col">Patient</th>
+      <th scope="col">Submitted by</th>
+      <th scope="col">Workflow</th>
+      <th scope="col">Submitted on</th>
+      <th scope="col">Submitted data</th>
+    </tr> </thead>
+
+    {% for patient in patients %}
+    <tbody>
+      <tr>
+        <td>Patient {{ patient.id }}</td>
+        <td>{{ patient.clinician }}</td>
+        <td>
+          <a href="{% url 'workflow-info-version' workflow_id=patient.workflow_id version=patient.workflow_version %}">
+            {{ patient.workflow_id }} v{{ patient.workflow_version }}
+          </a>
+        </td>
+        <td>{{ patient.time_submitted }}</td>
+        <td>
+          <details>
+            <summary>
+              Data submitted ({{ patient.data|length }} entries)
+            </summary>
+            {% for key, value in patient.data %}
+              <div style="margin-left: 20px">{{ key }}: {{ value }}</div>
+            {% endfor %}
+          </details>
+        </td>
+      </tr>
+    </tbody>
+
+    {% endfor %}
+
+  </table>
+</section>
+
+{% endblock content %}

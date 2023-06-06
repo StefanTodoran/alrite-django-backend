@@ -77,7 +77,6 @@ class RegisterView(CreateView):
 
 @api_view(['POST'])
 def login_api(request):
-    print (request.user)
     serializer = AuthTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.validated_data['user']
@@ -295,7 +294,6 @@ class SavePatientDataView(APIView):
     def post(self, request):
 
         file = request.FILES.get('patient')
-        print(file)
 
         user = self.request.user
 
@@ -447,6 +445,8 @@ def convertListToDict2(li):
 
 
 
+    
+
 
 
 
@@ -474,7 +474,7 @@ class WorkflowsView(LoginRequiredMixin, TemplateView):
                 version = entry.version,
                 created_by = entry.created_by,
                 time_created = entry.time_created,
-                num_patients = entry.datamodel.num_patients(),
+                num_patients = entry.get_patients().count(),
                 uid = entry.workflow_id + '_' + str(entry.version),
             ))
         
@@ -519,7 +519,7 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
                     preview = entry.preview,
                     created_by = entry.created_by,
                     time_created = entry.time_created,
-                    num_patients = entry.datamodel.num_patients(),
+                    num_patients = entry.get_patients().count(),
                     changes = entry.changes,
                     num_changes = num_changes,
                 ))
@@ -537,26 +537,24 @@ class WorkflowInfoView(LoginRequiredMixin, TemplateView):
         columns = []
         for entry in query:
             insert_index = 0
-            for newcol in entry.schema:
-                name = newcol['name']
+            for newcol in entry.get_valueIDs():
+                name = newcol.name
                 if name in columns:
                     insert_index = columns.index(name)+1
                 else:
                     columns.insert(insert_index, name)
                     insert_index += 1
 
-        print (columns)
-
         for entry in query:
-            if entry.datamodel.hastable():
-                for patient in entry.datamodel.objects.all():
-                    values = [(getattr(patient, col) if hasattr(patient, col) else None) for col in columns]
-                    patients.append(dict(
-                        workflow_version = entry.version,
-                        clinician = patient.clinician,
-                        time_submitted = patient.time_submitted,
-                        values = values,
-                    ))
+            for patient in entry.get_patients():
+                data = patient.get_data()
+                values = [data.get(col, None) for col in columns]
+                patients.append(dict(
+                    workflow_version = entry.version,
+                    clinician = patient.clinician,
+                    time_submitted = patient.time_submitted,
+                    values = values,
+                ))
 
         context['patients'] = patients
 
@@ -582,11 +580,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         workflows = {}
         for entry in Workflow.objects.all():
-            num_patients = entry.datamodel.num_patients()
-            workflows[entry.workflow_id] = workflows.get(entry.workflow_id, 0) + num_patients
+            workflows[entry.workflow_id] = workflows.get(entry.workflow_id, 0) + entry.get_patients().count()
         
         context['workflows'] = [dict(workflow_id=key, num_patients=value) for key,value in workflows.items()]
-        context['workflow_count'] = len(context['workflows'])
 
         users = []
         for user in CustomUser.objects.all():
@@ -600,7 +596,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 forms = user.forms,
             ))
         context['users'] = users
-        context['user_count'] = len(users)
+
+        patients = []
+        for patient in WorkflowPatient.objects.all():
+            patients.append(dict(
+                id = patient.id,
+                workflow_id = patient.workflow.workflow_id,
+                workflow_version = patient.workflow.version,
+                entry_count = len(patient.get_data()),
+            ))
+        context['patients'] = patients
         
         return context
 
@@ -649,7 +654,6 @@ class CreateInviteView(LoginRequiredMixin, TemplateView):
 
             if form.is_valid():
                 token = base64.b32encode(secrets.token_bytes(10)).decode()
-                print (token)
                 CustomUser.objects.create_user(
                     username = token,
                     is_staff = form.cleaned_data['is_admin'],
@@ -716,35 +720,70 @@ class EditorView(LoginRequiredMixin, View):
 
 class ExportWorkflowCSVView(LoginRequiredMixin, View):
     """ View that exports the data stored in a workflow as csv """
-    def get(self, request, workflow_id, version=None):
+    def get(self, request, workflow_id=None, version=None):
         
-        query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+        if workflow_id is None:
+            query = Workflow.objects.all()
+        else:
+            query = Workflow.objects.filter(workflow_id=workflow_id).order_by('-version')
+            if version is not None:
+                query = query.filter(version=version)
 
-        if version is not None:
-            query = query.filter(version=version)
-
-        columns = ['clinician', 'patient_uuid', 'app_version', 'time_submitted']
+        header_columns = ['patient_id', 'clinician', 'workflow_id', 'workflow_version', 'app_version', 'time_submitted']
+        columns = []
         for entry in query:
-            insert_index = 4
-            for newcol in entry.schema:
-                name = newcol['name']
+            insert_index = 0
+            for newcol in entry.get_valueIDs():
+                name = newcol.name
                 if name in columns:
                     insert_index = columns.index(name)+1
                 else:
                     columns.insert(insert_index, name)
                     insert_index += 1
 
-        print (columns)
         response = HttpResponse(content_type='text/csv')
         csvfile = csv.writer(response)
-        csvfile.writerow(columns)
+        csvfile.writerow(header_columns + columns)
 
         for entry in query:
-            if entry.datamodel.hastable():
-                for patient in entry.datamodel.objects.all():
-                    csvfile.writerow([(getattr(patient, col) if hasattr(patient, col) else None) for col in columns])
+            for patient in entry.get_patients():
+                data = patient.get_data()
+                values = [
+                    patient.id,
+                    patient.clinician,
+                    patient.workflow.workflow_id,
+                    patient.workflow.version,
+                    patient.app_version,
+                    patient.time_submitted,
+                ]
+                values = values + [data.get(col, None) for col in columns]
+                csvfile.writerow(values)
         
         return response
+
+class PatientsView(LoginRequiredMixin, TemplateView):
+    template_name = "patients.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(PatientsView, self).get_context_data(**kwargs)
+
+        patients = []
+        for patient in WorkflowPatient.objects.all():
+            columns = [valueID.name for valueID in patient.workflow.get_valueIDs()]
+            data = patient.get_data()
+            datalist = [(name, data[name]) for name in columns if name in data]
+            patients.append(dict(
+                id = patient.id,
+                clinician = patient.clinician,
+                workflow_id = patient.workflow.workflow_id,
+                workflow_version = patient.workflow.version,
+                time_submitted = patient.time_submitted,
+                data = datalist,
+            ))
+
+        context['patients'] = patients
+
+        return context
 
 
 # API Views
@@ -786,6 +825,14 @@ class LoginAPIView(APIView):
             'token': token
         })
 
+def debug_reupload_workflows(request):
+    for entry in Workflow.objects.all():
+        workflow_obj = json.loads(entry.json)
+        valueIDs = WorkflowAPIView.extract_valueIDs(None, workflow_obj)
+        entry.set_valueIDs(valueIDs)
+
+    return HttpResponse("Success!")
+
 class PostAuthenticator:
     """ Only authenticate for post requests """
     def has_permission(self, request, view):
@@ -819,38 +866,33 @@ class WorkflowAPIView(APIView):
             json = query[0].json
             return HttpResponse(json, content_type="application/json")
     
-    def type_to_column(self, typename):
-        if typename == "numeric":
-            return {"type": "IntegerField"}
-        elif typename in ['text', 'alphanumeric', 'any']:
-            return {"type": "CharField", "params": {"max_length": 127}}
-        else:
-            return {"type": "CharField", "params": {"max_length": 127}}
-
-    def extract_schema(self, workflow):
+    def extract_valueIDs(self, workflow):
         default_types = {
             "TextInput": "text",
             "Counter": "numeric",
             "MultipleChoice": "text",
         }
+
+        mappings = {
+            'text': CharValue,
+            'alphanumeric': CharValue,
+            'any': CharValue,
+            'numeric': FloatValue,
+        }
         
-        schema = []
+        valueIDs = []
         for page in workflow['pages']:
             for component in page['content']:
                 if 'valueID' in component:
-                    typename = component.get('type', default_types[component['component']])
-                    column = self.type_to_column(typename)
-                    column['name'] = component['valueID']
+                    typename = "text"
+                    if 'type' in component:
+                        typename = component['type']
+                    elif component['component'] in default_types:
+                        typename = default_types[component['component']]
 
-                    if 'params' in component:
-                        if 'params' in column:
-                            column['params'].update(component['params'])
-                        else:
-                            column['params'] = component['params']
+                    valueIDs.append((component['valueID'], mappings.get(typename, CharValue)))
 
-                    schema.append(column)
-
-        return schema
+        return valueIDs
 
     def post(self, request, workflow_id, version=None, preview=False):
         """ POST endpoint to save a workflow
@@ -874,7 +916,7 @@ class WorkflowAPIView(APIView):
             errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
             valid = False
 
-        schema = self.extract_schema(jsonobj)
+        valueIDs = self.extract_valueIDs(jsonobj)
 
         if not valid:
             return Response(errors_obj, status=status.HTTP_400_BAD_REQUEST)
@@ -911,16 +953,16 @@ class WorkflowAPIView(APIView):
         jsonobj['meta'] = responseobj
         jsontxt = json.dumps(jsonobj)
 
-        Workflow.objects.create(
+        workflow = Workflow.objects.create(
             workflow_id = workflow_id,
             version = next_version,
             preview = preview,
             time_created = time_created,
             created_by = user,
             json = jsontxt,
-            schema = schema,
             changes = changes,
         )
+        workflow.set_valueIDs(valueIDs)
         return Response(responseobj)
 
 
@@ -994,15 +1036,18 @@ class SaveWorkflowPatientAPIView(APIView):
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
-        valid_keys = [field['name'] for field in workflow.schema]
+        valid_keys = [field.name for field in workflow.get_valueIDs()]
 
         data = {}
         for key, value in request.data['summary'].items():
             if key in valid_keys:
                 data[key] = value
 
-        workflow.datamodel.maketable()
-        workflow.datamodel.objects.create(patient_uuid=uuid.uuid4(), **data)
+        patient = WorkflowPatient.objects.create(
+            clinician = request.user if request.user.is_authenticated else None,
+            workflow = workflow,
+        )
+        patient.set_data(data)
 
         return Response({"data": "sumbittem"})
 

@@ -103,8 +103,12 @@ active
 {% endif %}
 
 <section>
-  <h3>Collected Data</h3>
-  <a href="{% url "download" workflow_id=workflow.workflow_id %}">Download data</a>
+  <h3 style="margin-bottom: 0;">Collected Data</h3>
+  {% if specific_version %}
+  <a href="{% url "download-workflow-version" workflow_id=workflow.workflow_id version=workflow.version %}">Download data</a>
+  {% else %}
+  <a href="{% url "download-workflow" workflow_id=workflow.workflow_id %}">Download data</a>
+  {% endif %}
 </section>
 
 <section class="card">

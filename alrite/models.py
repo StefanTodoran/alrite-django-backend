@@ -54,62 +54,83 @@ class Workflow(models.Model):
     # Using TextField instead of JSONField because we don't need to parse the
     # JSON on the server, were just gonna send it back to clients.
     json = models.TextField()
-    # Stores the names and data types of the data that will be
-    # collected by the workflow, used to create the database
-    # format is [{"name": "...", "type": "..."}, ...], more information is in custom_models.py
-    schema = models.JSONField()
     # Stores all parts of the workflow that were changed from the last version.
     changes = models.JSONField()
+
+    def set_valueIDs(self, valueIDs):
+        ValueID.objects.filter(workflow=self).delete()
+        for name, typeobj in valueIDs:
+            ValueID.objects.create(
+                workflow = self,
+                name = name,
+                typeid = typeobj.typeid
+            )
     
-    workflow_models = {}
+    def get_valueIDs(self):
+        return ValueID.objects.filter(workflow=self)
 
-    def __init__(self, *args, **kwargs):
-        super(Workflow, self).__init__(*args, **kwargs)
-        if self.id in self.workflow_models:
-            self.datamodel = self.workflow_models[self.id]
-        else:
-            from . import custom_models
-            self.datamodel = custom_models.workflow_to_model(self)
-            self.workflow_models[self.id] = self.datamodel
-
+    def get_patients(self):
+        return WorkflowPatient.objects.filter(workflow=self)
+    
     def __str__(self):
         return "{} v{} (created {} by {})".format(
             self.workflow_id, self.version, self.time_created, self.created_by)
 
-class AbstractPatient(models.Model):
+class WorkflowPatient(models.Model):
     """
-    Abstract class that contains the default values recorded for all patients,
-    regardless of workflow
+    Model that represents a patient with data collected from a workflow
+    Because each workflow has different collected data, the actual values
+    are stored using the ValueID, CharValue, FloatValue tables.
     """
     clinician = models.ForeignKey(CustomUser, null=True, on_delete=models.SET_NULL)
-    patient_uuid = models.UUIDField()
+    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     app_version = models.IntegerField(default=1)
     time_submitted = models.DateTimeField(auto_now_add=True)
 
+    def set_data(self, data):
+        for model in valueModels.values():
+            model.objects.filter(patient=self).delete()
+
+        for name, value in data.items():
+            valueID = ValueID.objects.get(name=name, workflow=self.workflow)
+            valueModels[valueID.typeid].objects.create(
+                patient = self,
+                key = valueID,
+                value = value
+            )
+
+    def get_data(self):
+        data = {}
+        for model in valueModels.values():
+            for valentry in model.objects.filter(patient=self):
+                data[valentry.key.name] = valentry.value
+        return data
+
     def __str__(self):
         return "Patient {} (Collected {} by {})".format(
-            self.patient_uuid, self.time_submitted, self.clinician)
-    
-    @classmethod
-    def hastable(cls):
-        from . import custom_models
-        return custom_models.has_table(cls)
+            self.id, self.time_submitted, self.clinician)
 
-    @classmethod
-    def maketable(cls):
-        from . import custom_models
-        if not cls.hastable():
-            custom_models.register_model(cls)
-            custom_models.create_model(cls)
+class ValueID(models.Model):
+    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
+    name = models.CharField(max_length=127)
+    typeid = models.CharField(max_length=1)
 
-    @classmethod
-    def num_patients(cls):
-        if cls.hastable():
-            return cls.objects.all().count()
-        return 0
+class CharValue(models.Model):
+    typeid = 'C'
+    patient = models.ForeignKey(WorkflowPatient, on_delete=models.CASCADE)
+    key = models.ForeignKey(ValueID, on_delete=models.CASCADE)
+    value = models.CharField(max_length=127)
 
-    class Meta:
-        abstract = True
+class FloatValue(models.Model):
+    typeid = 'F'
+    patient = models.ForeignKey(WorkflowPatient, on_delete=models.CASCADE)
+    key = models.ForeignKey(ValueID, on_delete=models.CASCADE)
+    value = models.FloatField()
+
+valueModels = {
+    CharValue.typeid: CharValue,
+    FloatValue.typeid: FloatValue,
+}
 
 class Counter(models.Model):
     clinician = models.ForeignKey(CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
