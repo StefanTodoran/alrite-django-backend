@@ -868,7 +868,6 @@ class WorkflowAPIView(APIView):
 
         jsonobj = request.data
 
-        errors_obj, valid = validation.validateWorkflow(jsonobj)
         try:
             errors_obj, valid = validation.validateWorkflow(jsonobj)
         except:
@@ -934,11 +933,12 @@ class ValidationAPIView(APIView):
         a 400 error is returned, otherwise a 200 status is returned.
         """
 
-        try:
+        # try:
+        if True:
             errors_obj, valid = validation.validateWorkflow(request.data)
-        except:
-            errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
-            valid = False
+        # except:
+        #     errors_obj = validation.getBrokenWorkflowErrorArtifact(request.data)
+        #     valid = False
         
         # print(validation.calculateChanges(request.data, request.data))
         

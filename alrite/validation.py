@@ -381,8 +381,13 @@ class Workflow:
           artifactComponent = artifactPage.content[componentIndex]
           componentType = originalComponent["component"]
 
-          if componentType == "MultipleChoice":
-            print(originalComponent)
+          if componentType == "MultipleChoice" and not originalComponent["multiselect"]:
+            for choiceIndex in range(len(originalComponent["choices"])):
+              choice = originalComponent["choices"][choiceIndex]
+
+              error, visited = self.searchForUnusedAndLoopsHelper(choice["link"], visitedPages)
+              if error != None: artifactComponent["choices"][choiceIndex] = error
+              seenPages.update(visited)
           else:
             for prop in componentProps[componentType]:
               # If the prop is any kind of prop that could cause the
@@ -486,9 +491,12 @@ class WorkflowArtifact:
         originalComponent = originalPage["content"][componentIndex]
 
         if not noContent:
-          validatedPage.content.append({
-            "component": originalComponent["component"]
-          })
+          validatedComponent = { "component": originalComponent["component"] }
+          
+          if originalComponent["component"] == "MultipleChoice":
+            validatedComponent["choices"] = [None] * len(originalComponent["choices"])
+
+          validatedPage.content.append(validatedComponent)
         else:
           validatedPage.content.append("")
 
